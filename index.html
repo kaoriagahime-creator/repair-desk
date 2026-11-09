@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Repair Desk</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#1c2430;--mute:#667085;--line:#e2e6ea;--brand:#1f6feb;--ok:#1a7f4b;--warn:#b54708;--bad:#c0262d}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#14202e;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:17px;margin:0;flex:1}
+header .who{font-size:13px;opacity:.9}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;background:#e8f0fe;color:#1849a9}
+.badge.ok{background:#dcfae6;color:var(--ok)}.badge.off{background:#fee4e2;color:var(--bad)}.badge.warn{background:#fef0c7;color:var(--warn)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.danger{color:var(--bad)}
+button.small{padding:3px 9px;font-size:13px}
+header button{background:transparent;color:#fff;border-color:#ffffff55}
+nav{display:flex;gap:4px;padding:12px 20px 0;flex-wrap:wrap}
+nav button{border-radius:8px 8px 0 0;border-bottom:none;background:#e9edf1}
+nav button.on{background:var(--card);font-weight:600}
+main{padding:0 20px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:0 10px 10px 10px;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:3px}
+input,select,textarea{width:100%;font:inherit;padding:8px 10px;border:1px solid #cfd5db;border-radius:8px;background:#fff}
+input[type=checkbox]{width:auto;margin-right:6px}
+textarea{min-height:70px;resize:vertical}
+.span{grid-column:1/-1}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+.bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:end}
+.bar>*{flex:1;min-width:150px}.bar .fit{flex:0 0 auto;min-width:0}
+.hidden{display:none!important}
+#login{max-width:360px;margin:12vh auto;background:var(--card);padding:28px;border-radius:12px;border:1px solid var(--line)}
+#login h2{margin-top:0}
+#customer{max-width:640px;margin:6vh auto;background:var(--card);padding:28px;border-radius:12px;border:1px solid var(--line)}
+#customer h2{margin-top:0}
+.sep{border:none;border-top:1px solid var(--line);margin:18px 0}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin:8px 0}
+.note{background:#fef0c7;color:#6b3a07;padding:8px 20px;font-size:13px}
+.hint{font-size:12px;color:var(--mute);margin-top:14px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#14202e;color:#fff;padding:10px 18px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none}
+#toast.show{opacity:1}
+dialog{border:none;border-radius:12px;padding:22px;width:min(480px,92vw)}
+dialog::backdrop{background:#0006}
+.mute{color:var(--mute)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff;text-align:left}
+.stat b{display:block;font-size:26px;line-height:1.1}.stat span{font-size:13px;color:var(--mute)}
+.stat.on{border-color:var(--brand);background:#e8f0fe}
+@media (max-width:640px){
+  main{padding:0 10px 30px}.card{padding:14px;border-radius:0 0 10px 10px}
+  nav{flex-wrap:nowrap;overflow-x:auto;padding:10px 10px 0}nav button{white-space:nowrap}
+  input,select,textarea,button{font-size:16px;min-height:44px}
+  input[type=checkbox]{min-height:0;width:20px;height:20px}
+  button.small{min-height:38px}
+  header{padding:10px 12px}
+  #login,#customer{margin:4vh auto;padding:20px;width:calc(100% - 24px)}
+}
+@media print{body.pm *{visibility:hidden}body.pm #tab-money,body.pm #tab-money *{visibility:visible}body.pm #tab-money{position:absolute;left:0;top:0;width:100%}body.pm #tab-money .bar,body.pm #tab-money button{display:none}}
+html[data-theme=dark]{--bg:#0f1720;--card:#18222e;--ink:#e6ebf1;--mute:#9aa7b6;--line:#2a3745;--brand:#4c8dff;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;color-scheme:dark}
+html[data-theme=dark] button,html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea{background:#1f2c3a;color:var(--ink);border-color:#34465a}
+html[data-theme=dark] button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+html[data-theme=dark] button.danger{color:var(--bad)}
+html[data-theme=dark] header button{background:transparent;color:#fff;border-color:#ffffff55}
+html[data-theme=dark] nav button{background:#1f2c3a}html[data-theme=dark] nav button.on{background:var(--card)}
+html[data-theme=dark] .stat{background:#1f2c3a}html[data-theme=dark] .stat.on{background:#1e3a66}
+html[data-theme=dark] .badge{background:#1e3a66;color:#bcd4ff}html[data-theme=dark] .badge.ok{background:#12372a;color:#86efac}html[data-theme=dark] .badge.off{background:#4a1d1f;color:#fca5a5}html[data-theme=dark] .badge.warn{background:#4a3410;color:#fcd34d}
+html[data-theme=dark] .note{background:#4a3410;color:#fde68a}
+html[data-theme=dark] dialog{background:var(--card);color:var(--ink)}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section id="login">
+  <div style="text-align:right"><button class="theme small" type="button"></button></div>
+  <h2>Repair Desk</h2>
+  <form id="loginForm">
+    <label for="lu">Username</label><input id="lu" required autocomplete="username" autofocus>
+    <div style="height:10px"></div>
+    <label for="lp">Password</label><input id="lp" type="password" required autocomplete="current-password">
+    <div style="display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:13px;flex-wrap:wrap"><label style="margin:0;color:inherit"><input type="checkbox" id="showPw">Show password</label><label style="margin:0;color:inherit"><input type="checkbox" id="keepIn">Keep me signed in</label></div>
+    <div class="err" id="lerr"></div>
+    <button class="primary" style="width:100%">Sign in</button>
+  </form>
+  <hr class="sep">
+  <div style="text-align:center"><div class="mute" style="margin-bottom:8px">Dropping off a device?</div><button id="btnDesk" type="button" class="primary" style="width:100%">Open front desk</button></div>
+</section>
+
+<!-- CUSTOMER SELF-SERVICE (no login) -->
+<section id="customer" class="hidden">
+  <div style="text-align:right"><button class="theme small" type="button"></button></div>
+  <h2>Drop off your device</h2>
+  <p class="mute">Fill in your details below. Our staff will confirm them when you hand your device over. No account needed.</p>
+  <form id="formCust" class="grid">
+    <div><label>Your full name *</label><input name="customer" maxlength="80" required></div>
+    <div><label>Phone *</label><input name="phone" maxlength="30" placeholder="0917 123 4567" required></div>
+    <div><label>Email</label><input name="email" type="email" maxlength="120"></div>
+    <div><label>Device type *</label><select name="type" id="custType" required></select></div>
+    <div><label>Brand / model *</label><input name="model" maxlength="100" required></div>
+    <div><label>Serial number (if you know it)</label><input name="serial" maxlength="60"></div>
+    <div class="span"><label>What is wrong with it? *</label><textarea name="issue" maxlength="1000" required></textarea></div>
+    <div class="span"><label>Accessories you are leaving (charger, bag...)</label><input name="acc" maxlength="200"></div>
+    <div class="span"><label style="color:inherit"><input type="checkbox" name="consent" required>These details are mine, and I understand data may be lost during repair and backups are my responsibility *</label></div>
+    <div class="span" style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary">Send my details</button><button type="button" id="custBack">Back</button></div>
+  </form>
+  <div id="custDone" class="hidden">
+    <h3>Thank you!</h3>
+    <p>Your details were received. </p>
+    <p class="mute">Please hand your device and accessories to the front desk. Staff will confirm your details when you hand your device over.</p>
+    <button class="primary" id="custAgain" type="button">Submit another device</button>
+    <button type="button" id="custBack2">Back</button>
+  </div>
+</section>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <header>
+    <h1>🛠 Repair Desk</h1>
+    <span class="who" id="who"></span>
+    <button class="theme" type="button"></button>
+    <button id="btnCustForm" type="button" class="hidden">Customer form</button>
+    <button id="btnPw">Change my password</button>
+    <button id="btnOut">Sign out</button>
+  </header>
+  <div id="tempNote" class="note hidden">You are still using a default password. Please change it with "Change my password".</div>
+  <nav id="tabs"></nav>
+  <main>
+    <div class="card">
+
+      <!-- TICKETS -->
+      <section id="tab-tickets">
+        <div id="stats" class="stats"></div>
+        <div class="bar">
+          <div><label>Search</label><input id="q" placeholder="Name, phone, serial, device..."></div>
+          <div><label>Status</label><select id="fs"></select></div>
+          <div class="fit"><button id="btnNew" class="primary">+ New check-in</button> <button id="btnCsv">Export CSV</button></div>
+        </div>
+        <div style="overflow:auto"><table><thead><tr><th>Customer</th><th>Device</th><th>Issue</th><th>Status</th><th>Time left</th><th>In</th><th></th></tr></thead><tbody id="tbTickets"></tbody></table></div>
+      </section>
+
+      <!-- CHECK IN -->
+      <section id="tab-checkin" class="hidden">
+        <form id="formIn" class="grid">
+          <div><label>Customer name *</label><input name="customer" required></div>
+          <div><label>Phone *</label><input name="phone" placeholder="0917 123 4567" required></div>
+          <div><label>Email</label><input name="email" type="email"></div>
+          <div><label>Device type *</label>
+            <select name="type" required><option>Laptop</option><option>Desktop</option><option>All-in-one</option><option>Tablet</option><option>Phone</option><option>Printer</option><option>Other</option></select></div>
+          <div><label>Brand / model *</label><input name="model" required></div>
+          <div><label>Serial number</label><input name="serial"></div>
+          <div class="span"><label>Problem description *</label><textarea name="issue" required></textarea></div>
+          <div><label>Accessories left (charger, bag...)</label><input name="acc"></div>
+          
+          <div class="span"><button class="primary">Check in device</button></div>
+        </form>
+      </section>
+
+      <!-- CHECK OUT -->
+      <section id="tab-checkout" class="hidden">
+        <form id="formOut" class="grid">
+          <div class="span"><label>Device ready for pickup *</label><select id="outTicket" name="ticket" required></select></div>
+          <div class="span mute" id="outInfo"></div>
+          <div><label>Final cost *</label><input name="final" type="number" min="0" step="0.01" required></div>
+          <div><label>Payment method *</label><select name="pay" required><option>Cash</option><option>GCash</option><option>Maya</option><option>Bank transfer</option><option>Credit / debit card</option><option>Warranty / no charge</option></select></div>
+          <div><label>Picked up by (full name) *</label><input name="picker" required></div>
+          <div class="span"><label>Notes</label><textarea name="notes"></textarea></div>
+          <div class="span"><button class="primary">Check out device</button> <button type="button" id="outBack">Back to tickets</button></div>
+        </form>
+      </section>
+
+      <!-- CUSTOMER REQUESTS -->
+      <section id="tab-requests" class="hidden">
+        <p class="mute" style="margin-top:0">Details customers entered themselves. Accept to turn a request into a repair ticket once the device is in your hands.</p>
+        <div style="overflow:auto"><table><thead><tr><th>Sent</th><th>Customer</th><th>Device</th><th>Problem</th><th></th></tr></thead><tbody id="tbReq"></tbody></table></div>
+      </section>
+
+      <!-- USERS -->
+      <section id="tab-users" class="hidden">
+        <form id="formUser" class="bar">
+          <div><label>New username</label><input name="username" required pattern="[A-Za-z0-9_.\-]{3,30}" title="3-30 letters, numbers, . _ -"></div>
+          <div><label>Role</label><select name="role" id="newRole"></select></div>
+          <div><label>Temporary password</label><input name="pw" type="text" minlength="6" required></div>
+          <div class="fit"><button class="primary">Add user</button></div>
+        </form>
+        <div class="bar"><div class="fit"><button id="btnBackup" type="button">Download backup</button> <button id="btnRestore" type="button">Restore backup...</button><input type="file" id="fileRestore" accept=".json" class="hidden"></div><div class="mute" style="font-size:13px">All data lives only in this browser. Download a backup regularly.</div></div>
+        <div style="overflow:auto"><table><thead><tr><th>User</th><th>Role</th><th>Access</th><th>Last login</th><th></th></tr></thead><tbody id="tbUsers"></tbody></table></div>
+        <div class="hint" id="roleHelp"></div>
+      </section>
+
+      <!-- MONEY & REPORTS (admin) -->
+      <section id="tab-money" class="hidden">
+        <div class="bar">
+          <div><label>Period (by pickup date)</label>
+            <select id="mPeriod"><option value="today">Today</option><option value="week">This week</option><option value="month" selected>This month</option><option value="year">This year</option><option value="all">All time</option><option value="custom">Custom dates</option></select></div>
+          <div id="mFromWrap" class="hidden"><label>From</label><input type="date" id="mFrom"></div>
+          <div id="mToWrap" class="hidden"><label>To</label><input type="date" id="mTo"></div>
+          <div class="fit" style="width:90px"><label>Currency</label><input id="mCur" maxlength="4"></div>
+          <div class="fit"><button id="btnMoneyCsv">Export CSV</button> <button id="btnMoneyPrint">Print</button></div>
+        </div>
+        <div id="mStats" class="stats"></div>
+        <div class="grid" id="mBreak" style="margin-bottom:22px"></div>
+        <h3 style="margin:0 0 8px">Monthly sales (all time, by pickup date)</h3>
+        <div style="overflow:auto;margin-bottom:22px"><table><thead><tr><th>Month</th><th>Repairs</th><th>Money collected</th></tr></thead><tbody id="tbMonths"></tbody></table></div>
+        <h3 style="margin:0 0 8px">Collected repairs</h3>
+        <div style="overflow:auto;margin-bottom:22px"><table><thead><tr><th>Collected</th><th>Customer</th><th>Device</th><th>Problem</th><th>Tech</th><th>Final</th><th>Payment</th><th>Picked up by</th><th>Staff</th><th>Time in shop</th><th></th></tr></thead><tbody id="tbMoney"></tbody></table></div>
+        <h3 style="margin:0 0 8px">Open jobs</h3>
+        <div style="overflow:auto"><table><thead><tr><th>Customer</th><th>Device</th><th>Status</th><th>Checked in</th><th>Time in shop</th><th>Time left</th><th></th></tr></thead><tbody id="tbOpen"></tbody></table></div>
+      </section>
+
+      <!-- AUDIT -->
+      <section id="tab-audit" class="hidden">
+        <div style="overflow:auto"><table><thead><tr><th>When</th><th>User</th><th>Action</th><th>Details</th></tr></thead><tbody id="tbAudit"></tbody></table></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- EDIT DIALOG -->
+<dialog id="dlg">
+  <form id="formEdit" class="grid" method="dialog">
+    <div class="span"><b id="dlgTitle"></b></div>
+    <div><label>Status</label><select name="status" id="dlgStatus"></select></div>
+    
+    <div id="dueWrap" class="hidden"><label>Deadline (admin only)</label><input type="date" name="due"></div>
+    <div class="span"><label>Repair notes</label><textarea name="notes"></textarea></div>
+    <div id="coWrap" class="span grid hidden" style="padding:0">
+      <div><label>Final cost *</label><input name="final" type="number" min="0" step="0.01"></div>
+      <div><label>Payment method *</label><select name="pay"><option>Cash</option><option>GCash</option><option>Maya</option><option>Bank transfer</option><option>Credit / debit card</option><option>Warranty / no charge</option></select></div>
+      <div><label>Picked up by (full name) *</label><input name="picker"></div>
+          </div>
+    <div class="span" style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" id="dlgCo" class="hidden">Check out</button><button type="button" id="dlgCancel">Cancel</button><button class="primary" value="save" id="dlgSave">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="detailDlg" style="width:min(640px,94vw);max-height:90vh;overflow:auto">
+  <div id="detailBody"></div>
+  <div style="text-align:right;margin-top:14px"><button id="detailClose" type="button">Close</button></div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+/* ============ CONFIG ============ */
+const DB_KEY = 'repairdesk.v2';
+const STATUSES = ['Checked In','Diagnosing','Waiting for Parts','In Repair','Repaired','Unrepairable','Checked Out'];
+// Access privileges per role. Add or remove permissions here.
+const ROLES = {
+  admin:      {label:'Admin',      perms:['view','checkout','edit','delete','users','audit','finance','deadline'], help:'Edit and check out repairs, users, money reports, the audit log and changing deadlines. Check-ins come from customers and the front desk.'},
+  frontdesk:  {label:'Front desk', perms:['view','checkin','checkout'],                                 help:'Check devices in and out. Opens automatically without a password. Cannot edit repairs.'},
+  technician: {label:'Technician', perms:['view','edit','checkout'],                                               help:'Update status and notes, and check out finished jobs with the final price. Cannot check in or change the 7-day deadline. After check-out only an admin can edit the job.'},
+  viewer:     {label:'Viewer',     perms:['view'],                                                      help:'Read-only.'}
+};
+const TABS = [
+  {id:'tickets', label:'Tickets',   perm:'view'},
+  {id:'checkin', label:'Check In',  perm:'checkin'},
+  {id:'requests',label:'Customer Requests', perm:'requests'},
+  {id:'checkout',label:'Check Out', perm:'checkout', hidden:true},
+  {id:'money',   label:'Money & Reports', perm:'finance'},
+  {id:'users',   label:'Users & Access', perm:'users'},
+  {id:'audit',   label:'Audit Log', perm:'audit'}
+];
+
+/* ============ HELPERS ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = iso => iso ? new Date(iso).toLocaleString('en-PH') : '';
+const nf = n => Number(n).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+const money = n => (n === '' || n == null) ? '' : nf(n);
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
+
+async function hash(pw, salt){
+  const s = salt + ':' + pw;
+  try{
+    if (window.crypto && crypto.subtle){
+      const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+      return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+    }
+  }catch(e){}
+  let h = 5381; for (const c of s) h = ((h<<5)+h+c.charCodeAt(0))>>>0;   // weak fallback
+  return 'f' + h.toString(16);
+}
+const newSalt = () => { try{ return [...crypto.getRandomValues(new Uint8Array(12))].map(x=>x.toString(16).padStart(2,'0')).join(''); }catch(e){ return Math.random().toString(36).slice(2) + Date.now().toString(36); } };
+
+/* ============ STORAGE ============ */
+let db = null, session = null;
+function load(){ try{ const r = localStorage.getItem(DB_KEY); if (r) return JSON.parse(r); }catch(e){} return null; }
+function save(){ try{ localStorage.setItem(DB_KEY, JSON.stringify(db)); }catch(e){ toast('Could not save! Browser storage is full or blocked.'); } syncOut(); }
+async function makeUser(username, role, pw, temp){
+  const salt = newSalt();
+  return {username, role, salt, hash: await hash(pw, salt), active: true, temp: !!temp, created: new Date().toISOString(), lastLogin: null};
+}
+async function initLocal(){
+  db = load();
+  if (!db){
+    db = {counter:0, tickets:[], audit:[], users:[
+      await makeUser('123','admin','123',true),
+      await makeUser('desk','frontdesk','desk123',true),
+      await makeUser('tech','technician','tech123',true)
+    ]};
+    save();
+  }
+  normalize(); save();
+}
+async function init(){
+  await initLocal();
+  try{ await startSync(); }catch(e){ console.warn('sync unavailable', e); }
+}
+/* ============ REAL-TIME SYNC (Firebase Realtime Database) ============ */
+// 1) Paste your Firebase web-app config here.  2) Create the shop login in Firebase Auth (see setup steps).
+const FIREBASE_CONFIG = {apiKey:'AIzaSyBKbT_p4IsQsgPH-HVzagUlaCfadruQssk', authDomain:'computers-parts-99e0f.firebaseapp.com', databaseURL:'https://computers-parts-99e0f-default-rtdb.asia-southeast1.firebasedatabase.app', projectId:'computers-parts-99e0f'};
+const SHOP_EMAIL = 'shop@repairdesk.app';
+const SYNC = {on:false, fb:null, staff:false, last:new Map(), q:new Map(), first:new Set(), d:{tickets:[],requests:[],users:[],audit:[]}, meta:null, seeding:false};
+const sj = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, key) => (o[key] = x[key], o), {}) : x);
+const safeId = s => String(s).replace(/[^A-Za-z0-9_\-@+:]/g, c => '~' + c.charCodeAt(0).toString(16));
+const clone = x => JSON.parse(JSON.stringify(x));
+const ENT = {
+  tickets:  {get:() => db.tickets,  id:t => t.id},
+  requests: {get:() => db.requests, id:r => r.id},
+  users:    {get:() => db.users,    id:u => safeId(u.username)},
+  audit:    {get:() => db.audit,    id:a => a.i || (a.i = newSalt())}
+};
+const syncBadge = () => SYNC.on ? '<span class="badge ok">● Live</span>' : '<span class="badge off">Offline · this device only</span>';
+function put(path, fn){
+  const p = (SYNC.q.get(path) || Promise.resolve()).then(fn).catch(e => { SYNC.last.delete(path); toast('Sync problem, please retry'); });
+  SYNC.q.set(path, p);
+}
+function syncOut(){
+  if (!SYNC.on || !db) return;
+  const next = new Map();
+  for (const [col, e] of Object.entries(ENT)) for (const r of e.get()) next.set(col + '/' + e.id(r), r);
+  next.set('meta', {counter: db.counter || 0, reqCounter: db.reqCounter || 0});
+  for (const [path, r] of next){
+    const str = sj(r);
+    if (SYNC.last.get(path) !== str){ SYNC.last.set(path, str); put(path, () => SYNC.fb.ref(path).set(clone(r))); }
+  }
+  for (const path of [...SYNC.last.keys()]) if (!next.has(path)){ SYNC.last.delete(path); put(path, () => SYNC.fb.ref(path).remove()); }
+}
+function onCol(col, snap){
+  const v = snap.val() || {}, seen = new Set();
+  const arr = Object.keys(v).map(k => { SYNC.last.set(col + '/' + k, sj(v[k])); seen.add(col + '/' + k); return clone(v[k]); });
+  for (const k of [...SYNC.last.keys()]) if (k.startsWith(col + '/') && !seen.has(k)) SYNC.last.delete(k);
+  const by = {tickets:(a,b) => new Date(b.inAt) - new Date(a.inAt), requests:(a,b) => new Date(a.at) - new Date(b.at), users:(a,b) => new Date(a.created) - new Date(b.created), audit:(a,b) => new Date(b.t) - new Date(a.t)};
+  SYNC.d[col] = arr.sort(by[col]);
+}
+function applyRemote(){
+  const m = SYNC.meta || {};
+  db = {counter:Math.max(m.counter || 0, db.counter || 0), reqCounter:Math.max(m.reqCounter || 0, db.reqCounter || 0), ...SYNC.d};
+}
+function refresh(){
+  if (!session || !db) return;
+  if (!me()) return logout('Your access is no longer active.');
+  if (document.querySelector('dialog[open]') || tab === 'checkin' || tab === 'checkout') return;
+  showApp();
+}
+async function onData(){
+  if (SYNC.first.size < 5 || SYNC.seeding) return;
+  if (!SYNC.on){
+    if (!SYNC.d.users.length && !SYNC.meta){      // first ever staff device: create shared data from what is here
+      SYNC.seeding = true; normalize(); SYNC.on = true; SYNC.last.clear(); syncOut(); SYNC.seeding = false;
+      toast('Shared data created from this device'); return refresh();
+    }
+    SYNC.on = true;
+  }
+  applyRemote(); refresh();
+}
+async function attachStaff(){
+  if (SYNC.staff) return; SYNC.staff = true;
+  let done; const ready = new Promise(r => done = r);
+  const hit = k => { SYNC.first.add(k); if (SYNC.first.size === 5) done(); };
+  const err = e => { console.warn('db', e); toast('Cannot read shared data'); };
+  ['tickets','requests','users','audit'].forEach(col => SYNC.fb.ref(col).on('value', snap => { onCol(col, snap); hit(col); onData(); }, err));
+  SYNC.fb.ref('meta').on('value', snap => { SYNC.meta = snap.val(); hit('meta'); onData(); }, err);
+  await Promise.race([ready, new Promise(r => setTimeout(r, 8000))]);
+}
+async function startSync(){
+  if (typeof firebase === 'undefined' || /PASTE/.test(FIREBASE_CONFIG.apiKey + FIREBASE_CONFIG.databaseURL)) return;     // not configured: stays local
+  firebase.initializeApp(FIREBASE_CONFIG);
+  SYNC.fb = firebase.database();
+  const auth = firebase.auth();
+  const u = await new Promise(r => { const off = auth.onAuthStateChanged(x => { off(); r(x); }); });
+  if (u && u.email === SHOP_EMAIL) await attachStaff();
+  else if (!u) auth.signInAnonymously().catch(e => console.warn(e));                        // customers: may only submit requests
+}
+async function unlockStaff(){
+  if (!SYNC.fb || SYNC.staff) return true;
+  const code = prompt('Shop access code (ask the owner). Needed once per device:'); if (!code) return false;
+  try{ await firebase.auth().signInWithEmailAndPassword(SHOP_EMAIL, code); }catch(e){ $('#lerr').textContent = 'Wrong shop access code.'; return false; }
+  await attachStaff(); return true;
+}
+function pushCustomerTicket(t){
+  if (!SYNC.fb || SYNC.staff) return;
+  const au = firebase.auth();
+  (au.currentUser ? Promise.resolve() : au.signInAnonymously())
+    .then(() => SYNC.fb.ref('tickets/' + t.id).set(clone(t)))
+    .catch(() => toast('Could not send. Please see the front desk.'));
+}
+
+const nextRP = () => {
+  if (SYNC.fb && !SYNC.staff) return 'RP-C' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();   // customers: collision-proof id
+  db.counter = Math.max(db.counter || 0, ...db.tickets.map(t => parseInt(String(t.id).slice(3)) || 0)) + 1; return 'RP-' + String(db.counter).padStart(4,'0');
+};
+function normalize(){
+  if (!db.requests) db.requests = []; if (!db.reqCounter) db.reqCounter = 0;
+  if (db.requests.length){      // requests from before auto check-in become normal tickets
+    db.requests.slice().reverse().forEach(r => db.tickets.unshift({id:nextRP(), customer:r.customer, phone:r.phone, email:r.email, type:r.type, model:r.model, serial:r.serial, issue:r.issue, acc:r.acc, status:'Checked In', tech:'', notes:'', inAt:r.at || new Date().toISOString(), due:dueFromNow(), inBy:'customer', out:null}));
+    db.requests = [];
+  }
+}
+function log(action, detail, ref){
+  db.audit.unshift({i:newSalt(), t:new Date().toISOString(), u:session || 'customer', a:action, d:detail || '', r:ref || ''});
+  db.audit.length = Math.min(db.audit.length, 500);
+  save();
+}
+
+/* ============ ACCESS CONTROL ============ */
+const me = () => { const u = db.users.find(x => x.username === session); return (u && u.active) ? u : null; };
+const can = p => { const u = me(); return !!u && ROLES[u.role].perms.includes(p); };
+function guard(p){
+  if (!me()){ logout('Your access is no longer active.'); return false; }
+  if (!can(p)){ toast('Access denied'); return false; }
+  return true;
+}
+const activeAdmins = except => db.users.filter(u => u.active && u.role === 'admin' && u.username !== except).length;
+
+/* ============ LOGIN / LOGOUT ============ */
+let fails = 0, lockUntil = 0;
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (Date.now() < lockUntil){ $('#lerr').textContent = 'Too many tries. Wait ' + Math.ceil((lockUntil - Date.now()) / 1000) + ' seconds.'; return; }
+  if (!(await unlockStaff())) return;
+  const name = $('#lu').value.trim().toLowerCase();
+  const u = db.users.find(x => x.username.toLowerCase() === name);
+  const ok = u && (await hash($('#lp').value, u.salt)) === u.hash;
+  if (!ok){ if (++fails >= 5){ fails = 0; lockUntil = Date.now() + 30000; } $('#lerr').textContent = 'Invalid username or password.'; return; }
+  fails = 0;
+  if (!u.active){ $('#lerr').textContent = 'This account is inactive. Ask an admin to restore access.'; return; }
+  session = u.username; u.lastLogin = new Date().toISOString(); log('login'); save();
+  $('#lerr').textContent = ''; rememberSession($('#keepIn').checked, u.username); $('#loginForm').reset(); showApp();
+});
+const SESS_KEY = 'repairdesk.session', LAST_KEY = 'repairdesk.lastuser';
+function rememberSession(keep, name){ try{ (keep ? localStorage : sessionStorage).setItem(SESS_KEY, name); localStorage.setItem(LAST_KEY, name); }catch(e){} }
+function forgetSession(){ try{ sessionStorage.removeItem(SESS_KEY); localStorage.removeItem(SESS_KEY); }catch(e){} }
+function restoreSession(){
+  try{
+    const last = localStorage.getItem(LAST_KEY); if (last){ $('#lu').value = last; $('#lp').focus(); }
+    const s = sessionStorage.getItem(SESS_KEY) || localStorage.getItem(SESS_KEY);
+    if (s){ session = s; if (me()) showApp(); else { session = null; forgetSession(); } }
+  }catch(e){}
+  let noAuto = false; try{ noAuto = !!sessionStorage.getItem('repairdesk.noauto'); }catch(e){}
+  const fd = db.users.find(x => x.role === 'frontdesk' && x.active);
+  if (!session && !noAuto && fd){ session = fd.username; fd.lastLogin = new Date().toISOString(); log('login (automatic)'); showApp(); }
+}
+$('#showPw').onchange = () => { $('#lp').type = $('#showPw').checked ? 'text' : 'password'; };
+function logout(msg){
+  if (session) log('logout');
+  session = null; forgetSession(); try{ sessionStorage.setItem('repairdesk.noauto', '1'); }catch(e){}
+  $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
+  $('#lerr').textContent = msg || '';
+}
+$('#btnOut').onclick = () => logout();
+$('#btnPw').onclick = async () => {
+  const u = me(); if (!u) return logout();
+  const pw = prompt('New password (min 6 characters):');
+  if (!pw) return;
+  if (pw.length < 6) return toast('Password too short');
+  u.salt = newSalt(); u.hash = await hash(pw, u.salt); u.temp = false; log('password changed'); save(); showApp(); toast('Password updated');
+};
+
+/* ============ UI ============ */
+let tab = 'tickets';
+function showApp(){
+  const u = me(); if (!u) return logout();
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  $('#who').innerHTML = esc(u.username) + ' <span class="badge">' + ROLES[u.role].label + '</span> ' + syncBadge();
+  $('#btnPw').classList.toggle('hidden', u.role === 'frontdesk'); $('#btnCustForm').classList.toggle('hidden', u.role !== 'frontdesk');
+  $('#tempNote').classList.toggle('hidden', !u.temp || u.role === 'frontdesk');
+  const allowed = TABS.filter(t => can(t.perm));
+  if (!allowed.find(t => t.id === tab)) tab = allowed[0].id;
+  $('#tabs').innerHTML = allowed.filter(t => !t.hidden).map(t => `<button data-tab="${t.id}" class="${t.id===tab?'on':''}">${t.label}${t.id==='requests' && pendingCount() ? ' (' + pendingCount() + ')' : ''}</button>`).join('');
+  TABS.forEach(t => $('#tab-' + t.id).classList.toggle('hidden', t.id !== tab));
+  ({tickets:renderTickets, requests:renderRequests, money:renderMoney, checkout:renderCheckoutList, users:renderUsers, audit:renderAudit}[tab] || (()=>{}))();
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b){ tab = b.dataset.tab; showApp(); if (tab === 'checkin'){ const i = document.querySelector('#formIn input'); if (i) i.focus(); } } });
+
+/* ---- 7-day shop deadline ---- */
+const SHOP_DAYS = 7;
+const dueFromNow = () => addDays(new Date(), SHOP_DAYS).toISOString();
+const dueOf = t => new Date(t.due || addDays(t.inAt, SHOP_DAYS));      // older records fall back to check-in + 7 days
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const daysLeft = t => Math.round((startOfDay(dueOf(t)) - startOfDay(new Date())) / 864e5);
+const toInput = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function deadlineBadge(t){
+  if (t.status === 'Checked Out') return '<span class="mute">Collected' + (t.out ? '<br>' + esc(days(t.inAt, t.out.at)) + ' in shop' : '') + '</span>';
+  const n = daysLeft(t), cls = n < 0 ? 'off' : n <= 2 ? 'warn' : 'ok';
+  const txt = n < 0 ? 'Overdue by ' + (-n) + ' day' + (n === -1 ? '' : 's') : n === 0 ? 'Due today' : n + ' day' + (n === 1 ? '' : 's') + ' left';
+  return `<span class="badge ${cls}">${txt}</span><br><span class="mute">${esc(dueOf(t).toLocaleDateString('en-PH'))}</span>`;
+}
+
+/* ---- Tickets ---- */
+$('#fs').innerHTML = '<option value="__open">Open (not picked up)</option><option value="__active">In progress</option><option value="__overdue">Overdue (past 7 days)</option><option value="">All tickets</option>' + STATUSES.map(s => `<option>${s}</option>`).join('');
+$('#q').oninput = $('#fs').onchange = () => renderTickets();
+const IN_PROGRESS = ['Diagnosing','Waiting for Parts','In Repair'];
+const NEXT = {'Checked In':'Diagnosing','Diagnosing':'In Repair','Waiting for Parts':'In Repair','In Repair':'Repaired'};
+function matchStatus(t, fs){
+  if (fs === '__open') return t.status !== 'Checked Out';
+  if (fs === '__active') return IN_PROGRESS.includes(t.status);
+  if (fs === '__overdue') return t.status !== 'Checked Out' && daysLeft(t) < 0;
+  return !fs || t.status === fs;
+}
+function renderStats(){
+  const n = f => db.tickets.filter(t => matchStatus(t, f)).length, fs = $('#fs').value;
+  const cards = [['Checked In','New',n('Checked In')], ['__active','In progress',n('__active')], ['Repaired','Ready for pickup',n('Repaired')], ['__overdue','Overdue',n('__overdue')]];
+  if (can('requests')) cards.push(['__req','Customer requests',pendingCount()]);
+  $('#stats').innerHTML = cards.map(([v,l,c]) => `<button class="stat ${v===fs?'on':''}" data-f="${v}"><b>${c}</b><span>${l}</span></button>`).join('');
+  $('#btnNew').classList.toggle('hidden', !can('checkin'));
+}
+$('#stats').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if (!b) return;
+  if (b.dataset.f === '__req'){ tab = 'requests'; return showApp(); }
+  $('#fs').value = b.dataset.f; renderTickets();
+});
+$('#btnNew').onclick = () => { if (guard('checkin')){ tab = 'checkin'; showApp(); const i = document.querySelector('#formIn input'); if (i) i.focus(); } };
+const statusBadge = s => `<span class="badge ${s==='Repaired'?'ok':s==='Checked Out'?'':s==='Unrepairable'?'off':'warn'}">${esc(s)}</span>`;
+function renderTickets(){
+  renderStats();
+  const q = $('#q').value.trim().toLowerCase(), fs = $('#fs').value;
+  const rows = db.tickets.filter(t =>
+    matchStatus(t, fs) && !(t.status === 'Checked Out' && me().role === 'technician') &&
+    (!q || [t.customer,t.phone,t.email,t.model,t.serial,t.issue,t.type].join(' ').toLowerCase().includes(q)));
+  const isOpen = t => t.status !== 'Checked Out';
+  rows.sort((a, b) => (isOpen(b) - isOpen(a)) || (isOpen(a) ? dueOf(a) - dueOf(b) : new Date(b.inAt) - new Date(a.inAt)));
+  $('#tbTickets').innerHTML = rows.length ? rows.map(t => `
+    <tr>
+            <td>${esc(t.customer)}<br><span class="mute">${esc(t.phone)}</span></td>
+      <td>${esc(t.type)}<br><span class="mute">${esc(t.model)}</span></td>
+      <td>${esc(t.issue)}</td>
+      <td>${statusBadge(t.status)}${t.out ? '<br><span class="mute">'+esc(fmt(t.out.at))+'</span>' : ''}</td>
+      <td>${deadlineBadge(t)}</td>
+      <td class="mute">${esc(fmt(t.inAt))}</td>
+      <td style="white-space:nowrap">
+        ${can('edit') && NEXT[t.status] ? `<button class="small primary" data-next="${t.id}">→ ${NEXT[t.status]}</button>` : ''}
+        ${can('checkout') && !can('edit') && ['Repaired','Unrepairable'].includes(t.status) ? `<button class="small primary" data-co="${t.id}">Check out</button>` : ''}
+        ${can('edit') && (t.status!=='Checked Out' || me().role==='admin') ? `<button class="small primary" data-edit="${t.id}">${can('checkout') && ['Repaired','Unrepairable'].includes(t.status) ? 'Update / Check out' : 'Update'}</button>` : ''}
+        ${can('finance') ? `<button class="small" data-det="${t.id}">Details</button>` : ''}
+        ${can('delete') ? `<button class="small danger" data-del="${t.id}">Delete</button>` : ''}
+      </td>
+    </tr>`).join('') : '<tr><td colspan="7" class="mute">No repairs yet.</td></tr>';
+}
+$('#tbTickets').addEventListener('click', e => {
+  const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]'), nx = e.target.closest('[data-next]'), co = e.target.closest('[data-co]');
+  if (nx && guard('edit')){
+    const t = db.tickets.find(x => x.id === nx.dataset.next);
+    if (t && NEXT[t.status]){ const b = t.status; t.status = NEXT[b]; if (me().role === 'technician') t.tech = session; log('ticket updated', `${t.customer}: ${b} → ${t.status}`, t.id); save(); renderTickets(); toast(`${t.customer} → ${t.status}`); }
+  }
+  if (co && guard('checkout')){ tab = 'checkout'; showApp(); $('#outTicket').value = co.dataset.co; showOutInfo(); }
+  if (ed) openEdit(ed.dataset.edit);
+  if (del && guard('delete')){
+    const dt = db.tickets.find(x => x.id === del.dataset.del) || {customer:'this customer', model:''};
+    if (!confirm('Delete the repair for ' + dt.customer + '? This cannot be undone.')) return;
+    db.tickets = db.tickets.filter(t => t.id !== del.dataset.del); log('ticket deleted', dt.customer + (dt.model ? ' (' + dt.model + ')' : '')); save(); renderTickets();
+  }
+});
+$('#dlgStatus').innerHTML = STATUSES.map(s => `<option>${s}</option>`).join('');
+let editId = null;
+function openEdit(id){
+  if (!guard('edit')) return;
+  const t = db.tickets.find(x => x.id === id); if (!t) return;
+  if (t.out && me().role !== 'admin') return toast('Access denied: already checked out');
+  editId = id;
+  const f = $('#formEdit');
+  $('#dlgTitle').textContent = `${t.customer} · ${t.model}`;
+  [...f.status.options].forEach(o => o.disabled = o.value === 'Checked Out' && !t.out); f.status.disabled = !!t.out;
+  $('#dlgCo').classList.toggle('hidden', !(can('checkout') && me().role !== 'technician' && ['Repaired','Unrepairable'].includes(t.status)));
+  f.status.value = t.status; f.notes.value = t.notes || '';
+  $('#dueWrap').classList.toggle('hidden', !can('deadline')); f.due.value = toInput(dueOf(t));
+  f.final.value = ''; f.pay.selectedIndex = 0; f.picker.value = ''; syncCo();
+  $('#dlg').showModal();
+}
+const coOn = (t, f) => !!t && me().role === 'technician' && can('checkout') && !t.out && ['Repaired','Unrepairable'].includes(f.status.value);
+function syncCo(){
+  const f = $('#formEdit'), on = coOn(db.tickets.find(x => x.id === editId), f);
+  $('#coWrap').classList.toggle('hidden', !on);
+  ['final','pay','picker'].forEach(n => f[n].required = on);
+  $('#dlgSave').textContent = on ? 'Check out' : 'Save';
+}
+$('#dlgStatus').onchange = syncCo;
+$('#dlgCancel').onclick = () => $('#dlg').close();
+$('#dlgCo').onclick = () => { if (!guard('checkout')) return; $('#dlg').close(); tab = 'checkout'; showApp(); $('#outTicket').value = editId; showOutInfo(); };
+$('#formEdit').addEventListener('submit', e => {
+  const f = e.target;
+  if (!guard('edit')) return;
+  const t = db.tickets.find(x => x.id === editId); if (!t) return;
+  if (t.out && me().role !== 'admin') return toast('Access denied: already checked out');
+  const before = t.status;
+  Object.assign(t, {status:t.out ? t.status : f.status.value, tech: me().role === 'technician' ? session : t.tech, notes:f.notes.value.trim()});
+  if (can('deadline') && f.due.value && f.due.value !== toInput(dueOf(t))){      // only admins can move the deadline
+    log('deadline changed', `${t.customer}: ${toInput(dueOf(t))} → ${f.due.value}`, t.id);
+    t.due = new Date(f.due.value + 'T23:59:00').toISOString();
+  }
+  log('ticket updated', `${t.customer}: ${before} → ${t.status}`, t.id);
+  if (coOn(t, f) && guard('checkout')){
+    t.status = 'Checked Out';
+    t.out = {at:new Date().toISOString(), by:session, final:f.final.value, pay:f.pay.value, picker:f.picker.value.trim(), notes:''};
+    log('check out', `${t.customer} (${t.model}) to ${t.out.picker} · ${curSym()}${money(t.out.final)} ${t.out.pay}`, t.id); toast(t.customer + ' checked out');
+  }
+  save(); renderTickets();
+});
+$('#btnCsv').onclick = () => {
+  if (!guard('view')) return;
+  const cell = v => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g,'""') + '"'; };
+  const head = ['Customer','Phone','Email','Type','Model','Serial','Issue','Accessories','Status','Technician','Checked in','Deadline','Checked in by','Final cost','Payment','Picked up by','Checked out','Checked out by'];
+  const lines = db.tickets.map(t => [t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.acc,t.status,t.tech,t.inAt,toInput(dueOf(t)),t.inBy,t.out?.final,t.out?.pay,t.out?.picker,t.out?.at,t.out?.by].map(cell).join(','));
+  const blob = new Blob(['\ufeff' + [head.map(cell).join(','), ...lines].join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'repair-tickets.csv'; a.click();
+  log('export csv', db.tickets.length + ' tickets');
+};
+
+/* ---- Check in ---- */
+$('#formIn').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!guard('checkin')) return;
+  const f = new FormData(e.target);
+  const t = {
+    id: nextRP(),
+    customer: f.get('customer').trim(), phone: f.get('phone').trim(), email: f.get('email').trim(),
+    type: f.get('type'), model: f.get('model').trim(), serial: f.get('serial').trim(),
+    issue: f.get('issue').trim(), acc: f.get('acc').trim(),
+    status: 'Checked In', tech: '', notes: '', inAt: new Date().toISOString(), due: dueFromNow(), inBy: session, out: null
+  };
+  db.tickets.unshift(t); log('check in', `${t.customer} · ${t.type} ${t.model}`, t.id); save();
+  e.target.reset(); toast('Checked in: ' + t.customer + ' · deadline ' + dueOf(t).toLocaleDateString('en-PH'));
+});
+
+/* ---- Check out ---- */
+function renderCheckoutList(){
+  const ready = db.tickets.filter(t => t.status === 'Repaired' || t.status === 'Unrepairable');
+  $('#outTicket').innerHTML = ready.length
+    ? ready.map(t => `<option value="${esc(t.id)}">${esc(t.customer)} — ${esc(t.model)} (${esc(t.status)})</option>`).join('')
+    : '<option value="">No devices are ready for pickup</option>';
+  showOutInfo();
+}
+function showOutInfo(){
+  const t = db.tickets.find(x => x.id === $('#outTicket').value);
+  $('#outInfo').innerHTML = t ? `Problem: ${esc(t.issue)}<br>${t.notes ? 'Repair notes: ' + esc(t.notes) + '<br>' : ''}` : '';
+}
+$('#outTicket').onchange = showOutInfo;
+$('#outBack').onclick = () => { tab = 'tickets'; showApp(); };
+$('#formOut').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!guard('checkout')) return;
+  const f = new FormData(e.target);
+  const t = db.tickets.find(x => x.id === f.get('ticket'));
+  if (!t || !['Repaired','Unrepairable'].includes(t.status)) return toast('Pick a device that is ready');
+  t.status = 'Checked Out';
+  t.out = {at:new Date().toISOString(), by:session, final:f.get('final'), pay:f.get('pay'), picker:f.get('picker').trim(), notes:f.get('notes').trim()};
+  log('check out', `${t.customer} (${t.model}) to ${t.out.picker} · ${curSym()}${money(t.out.final)} ${t.out.pay}`, t.id); save();
+  e.target.reset(); tab = 'tickets'; showApp(); toast(t.customer + ' checked out');
+});
+
+/* ---- Customer self-service (no login needed) ---- */
+const DEVICE_TYPES = ['Laptop','Desktop','All-in-one','Tablet','Phone','Printer','Other'];
+$('#custType').innerHTML = DEVICE_TYPES.map(t => `<option>${t}</option>`).join('');
+const clip = (v, n) => String(v || '').trim().slice(0, n);
+const pendingCount = () => (db && db.requests) ? db.requests.length : 0;
+function showCustomer(){
+  $('#app').classList.add('hidden'); $('#login').classList.add('hidden'); $('#customer').classList.remove('hidden');
+  $('#formCust').classList.remove('hidden'); $('#custDone').classList.add('hidden');
+}
+function backToLogin(){ $('#customer').classList.add('hidden'); if (me()) showApp(); else $('#login').classList.remove('hidden'); }
+$('#btnDesk').onclick = () => {
+  const fd = db.users.find(x => x.role === 'frontdesk' && x.active); if (!fd) return toast('No active front desk account');
+  session = fd.username; fd.lastLogin = new Date().toISOString(); log('login (automatic)');
+  try{ sessionStorage.removeItem('repairdesk.noauto'); }catch(e){}
+  showApp();
+};
+$('#btnCustForm').onclick = showCustomer;
+$('#custBack').onclick = $('#custBack2').onclick = backToLogin;
+$('#custAgain').onclick = showCustomer;
+$('#formCust').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!SYNC.on){ const fresh = load(); if (fresh){ db = fresh; normalize(); } }
+  if (db.tickets.filter(t => t.inBy === 'customer' && t.status === 'Checked In').length >= 100) return toast('Too many new drop-offs are waiting. Please see the front desk.');
+  const f = new FormData(e.target);
+  const r = {
+    at: new Date().toISOString(),
+    customer: clip(f.get('customer'),80), phone: clip(f.get('phone'),30), email: clip(f.get('email'),120),
+    type: DEVICE_TYPES.includes(f.get('type')) ? f.get('type') : 'Other',
+    model: clip(f.get('model'),100), serial: clip(f.get('serial'),60), issue: clip(f.get('issue'),1000), acc: clip(f.get('acc'),200)
+  };
+  if (!r.customer || !r.phone || !r.model || !r.issue) return toast('Please fill in the required fields');
+  const t = {id:nextRP(), customer:r.customer, phone:r.phone, email:r.email, type:r.type, model:r.model, serial:r.serial,
+    issue:r.issue, acc:r.acc, status:'Checked In', tech:'', notes:'', inAt:r.at, due:dueFromNow(), inBy:'customer', out:null};
+  db.tickets.unshift(t); log('check in', `${t.customer} · ${t.type} ${t.model} (self-service)`, t.id); save(); pushCustomerTicket(t);
+  e.target.reset(); $('#formCust').classList.add('hidden');
+  $('#custDone').classList.remove('hidden');
+});
+
+/* ---- Staff: review customer requests ---- */
+function renderRequests(){
+  $('#tbReq').innerHTML = db.requests.length ? db.requests.map(r => `
+    <tr>
+      <td class="mute">${esc(fmt(r.at))}</td>
+      <td>${esc(r.customer)}<br><span class="mute">${esc(r.phone)}${r.email ? ' · ' + esc(r.email) : ''}</span></td>
+      <td>${esc(r.type)}<br><span class="mute">${esc(r.model)}${r.serial ? ' · S/N ' + esc(r.serial) : ''}</span></td>
+      <td>${esc(r.issue)}${r.acc ? '<br><span class="mute">Accessories: ' + esc(r.acc) + '</span>' : ''}</td>
+      <td style="white-space:nowrap"><button class="small primary" data-acc="${esc(r.id)}">Accept &amp; check in</button> <button class="small danger" data-rej="${esc(r.id)}">Reject</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="mute">No customer requests waiting.</td></tr>';
+}
+$('#tbReq').addEventListener('click', e => {
+  const a = e.target.closest('[data-acc]'), x = e.target.closest('[data-rej]');
+  if (!a && !x) return;
+  if (!guard('requests') || !guard('checkin')) return;
+  const r = db.requests.find(q => q.id === (a ? a.dataset.acc : x.dataset.rej)); if (!r) return;
+  if (x){
+    if (!confirm('Reject the request from ' + r.customer + '?')) return;
+    db.requests = db.requests.filter(q => q !== r); log('request rejected', r.customer); save(); return showApp();
+  }
+  const t = {
+    id: nextRP(),
+    customer: r.customer, phone: r.phone, email: r.email, type: r.type, model: r.model, serial: r.serial,
+    issue: r.issue, acc: r.acc, status: 'Checked In', tech: '', notes: '',
+    inAt: new Date().toISOString(), due: dueFromNow(), inBy: session, out: null
+  };
+  db.tickets.unshift(t); db.requests = db.requests.filter(q => q !== r);
+  log('request accepted', `${r.customer} · ${r.type} ${r.model}`, t.id); save();
+  showApp(); toast('Checked in: ' + t.customer + ' · deadline ' + dueOf(t).toLocaleDateString('en-PH'));
+});
+
+/* ---- Users & access ---- */
+$('#newRole').innerHTML = Object.entries(ROLES).map(([k,r]) => `<option value="${k}">${r.label}</option>`).join('');
+function renderUsers(){
+  $('#tbUsers').innerHTML = db.users.map(u => `
+    <tr>
+      <td><b>${esc(u.username)}</b>${u.username===session?' <span class="mute">(you)</span>':''}</td>
+      <td><select data-role="${esc(u.username)}">${Object.entries(ROLES).map(([k,r]) => `<option value="${k}" ${k===u.role?'selected':''}>${r.label}</option>`).join('')}</select></td>
+      <td><span class="badge ${u.active?'ok':'off'}">${u.active?'Active':'Inactive'}</span></td>
+      <td class="mute">${esc(fmt(u.lastLogin)) || 'never'}</td>
+      <td style="white-space:nowrap">
+        <button class="small" data-toggle="${esc(u.username)}">${u.active?'Deactivate':'Activate'}</button>
+        <button class="small" data-reset="${esc(u.username)}">Reset password</button>
+        <button class="small danger" data-rm="${esc(u.username)}">Delete</button>
+      </td>
+    </tr>`).join('');
+  $('#roleHelp').innerHTML = Object.values(ROLES).map(r => `<b>${r.label}:</b> ${r.help}`).join('<br>');
+}
+$('#formUser').addEventListener('submit', async e => {
+  e.preventDefault(); if (!guard('users')) return;
+  const f = new FormData(e.target), name = f.get('username').trim();
+  if (db.users.some(u => u.username.toLowerCase() === name.toLowerCase())) return toast('Username already exists');
+  db.users.push(await makeUser(name, f.get('role'), f.get('pw'), true));
+  log('user added', `${name} (${f.get('role')})`); save(); e.target.reset(); renderUsers();
+});
+$('#tbUsers').addEventListener('change', e => {
+  const s = e.target.closest('[data-role]'); if (!s || !guard('users')) return;
+  const u = db.users.find(x => x.username === s.dataset.role);
+  if (u.role === 'admin' && s.value !== 'admin' && u.active && activeAdmins(u.username) === 0){ toast('Keep at least one active admin'); return renderUsers(); }
+  log('role changed', `${u.username}: ${u.role} → ${s.value}`); u.role = s.value; save(); showApp();
+});
+$('#tbUsers').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || !guard('users')) return;
+  const name = b.dataset.toggle || b.dataset.reset || b.dataset.rm;
+  const u = db.users.find(x => x.username === name); if (!u) return;
+  if (b.dataset.toggle){
+    if (u.active && u.role === 'admin' && activeAdmins(u.username) === 0) return toast('Keep at least one active admin');
+    u.active = !u.active; log(u.active ? 'access activated' : 'access deactivated', u.username); save(); showApp();
+  } else if (b.dataset.reset){
+    const pw = prompt('New temporary password for ' + u.username + ' (min 6 characters):');
+    if (!pw || pw.length < 6) return;
+    u.salt = newSalt(); u.hash = await hash(pw, u.salt); u.temp = true; log('password reset', u.username); save(); toast('Password reset');
+  } else if (b.dataset.rm){
+    if (u.active && u.role === 'admin' && activeAdmins(u.username) === 0) return toast('Keep at least one active admin');
+    if (!confirm('Delete user ' + u.username + '?')) return;
+    db.users = db.users.filter(x => x !== u); log('user deleted', u.username); save(); showApp();
+  }
+});
+
+/* ---- Backup / restore ---- */
+$('#btnBackup').onclick = () => {
+  if (!guard('users')) return;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type:'application/json'}));
+  a.download = 'repairdesk-backup-' + toInput(new Date()) + '.json'; a.click(); log('backup downloaded');
+};
+$('#btnRestore').onclick = () => { if (guard('users')) $('#fileRestore').click(); };
+$('#fileRestore').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f || !guard('users')) return;
+  try{
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.tickets) || !Array.isArray(d.audit) || !Array.isArray(d.users) || !d.users.some(u => u.role === 'admin' && u.active)) throw 0;
+    if (!confirm('Replace ALL current data with this backup?')) return;
+    db = d; normalize(); save(); log('backup restored', f.name);
+    if (!me()) return logout('Backup restored. Please sign in again.');
+    showApp(); toast('Backup restored');
+  }catch(_){ toast('That file is not a valid backup'); }
+};
+
+/* ---- Money & reports (admin only) ---- */
+const curSym = () => (db.currency === undefined ? '₱' : db.currency);
+const cur = n => esc(curSym()) + nf(Number(n) || 0);
+const hasNum = v => v !== '' && v != null && !isNaN(Number(v));
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const days = (a, b) => { const d = (new Date(b) - new Date(a)) / 864e5; return d < 1 ? '<1 day' : Math.round(d) + ' d'; };
+function moneyRange(){
+  const p = $('#mPeriod').value, now = new Date(), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (p === 'today') return [d0, addDays(d0, 1)];
+  if (p === 'week'){ const st = addDays(d0, -((d0.getDay() + 6) % 7)); return [st, addDays(st, 7)]; }
+  if (p === 'month') return [new Date(now.getFullYear(), now.getMonth(), 1), new Date(now.getFullYear(), now.getMonth() + 1, 1)];
+  if (p === 'year') return [new Date(now.getFullYear(), 0, 1), new Date(now.getFullYear() + 1, 0, 1)];
+  if (p === 'custom'){
+    const a = $('#mFrom').value, b = $('#mTo').value;
+    return [a ? new Date(a + 'T00:00:00') : new Date(0), b ? addDays(new Date(b + 'T00:00:00'), 1) : new Date(8.64e15)];
+  }
+  return [new Date(0), new Date(8.64e15)];
+}
+function moneyData(){
+  const [lo, hi] = moneyRange();
+  const done = db.tickets.filter(t => t.out && new Date(t.out.at) >= lo && new Date(t.out.at) < hi).sort((a, b) => new Date(b.out.at) - new Date(a.out.at));
+  const open = db.tickets.filter(t => t.status !== 'Checked Out').sort((a, b) => new Date(a.inAt) - new Date(b.inAt));
+  return {done, open};
+}
+function groupTable(title, rows, keyFn){
+  const g = {};
+  rows.forEach(t => { const k = keyFn(t) || '(none)'; g[k] = g[k] || {n:0, sum:0}; g[k].n++; g[k].sum += Number(t.out.final) || 0; });
+  const ents = Object.entries(g).sort((a, b) => b[1].sum - a[1].sum);
+  return `<div><h4 style="margin:0 0 6px">${esc(title)}</h4><table><thead><tr><th></th><th>Repairs</th><th>Money</th></tr></thead><tbody>` +
+    (ents.length ? ents.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n}</td><td>${cur(v.sum)}</td></tr>`).join('') : '<tr><td colspan="3" class="mute">No data</td></tr>') +
+    '</tbody></table></div>';
+}
+function renderMoney(){
+  if (!can('finance')) return;
+  const p = $('#mPeriod').value;
+  $('#mFromWrap').classList.toggle('hidden', p !== 'custom'); $('#mToWrap').classList.toggle('hidden', p !== 'custom');
+  if (document.activeElement !== $('#mCur')) $('#mCur').value = curSym();
+  const {done, open} = moneyData();
+  const total = done.reduce((s, t) => s + (Number(t.out.final) || 0), 0);
+  const free = done.filter(t => !(Number(t.out.final) > 0)).length;
+  $('#mStats').innerHTML = [
+    [cur(total), 'Money collected'], [done.length, 'Repairs collected'], [cur(done.length ? total / done.length : 0), 'Average per repair'],
+    [open.filter(t => daysLeft(t) < 0).length, 'Overdue jobs'], [free, 'No-charge jobs']
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${esc(l)}</span></div>`).join('');
+  const mm = {};
+  db.tickets.filter(t => t.out).forEach(t => { const d = new Date(t.out.at), k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); mm[k] = mm[k] || {n:0, sum:0}; mm[k].n++; mm[k].sum += Number(t.out.final) || 0; });
+  const ks = Object.keys(mm).sort().reverse(), all = ks.reduce((a, k) => ({n:a.n + mm[k].n, sum:a.sum + mm[k].sum}), {n:0, sum:0});
+  const mname = k => new Date(+k.slice(0, 4), +k.slice(5) - 1, 1).toLocaleString('en-PH', {month:'long', year:'numeric'});
+  $('#tbMonths').innerHTML = ks.length ? ks.map(k => `<tr><td>${esc(mname(k))}</td><td>${mm[k].n}</td><td>${cur(mm[k].sum)}</td></tr>`).join('') +
+    `<tr><td><b>Total</b></td><td><b>${all.n}</b></td><td><b>${cur(all.sum)}</b></td></tr>` : '<tr><td colspan="3" class="mute">No sales yet.</td></tr>';
+  $('#mBreak').innerHTML = groupTable('By payment method', done, t => t.out.pay) + groupTable('By device type', done, t => t.type) + groupTable('By staff (checked out)', done, t => t.out.by);
+  $('#tbMoney').innerHTML = done.length ? done.map(t => `
+    <tr>
+      <td class="mute" style="white-space:nowrap">${esc(fmt(t.out.at))}</td>
+            <td>${esc(t.customer)}<br><span class="mute">${esc(t.phone)}</span></td>
+      <td>${esc(t.type)}<br><span class="mute">${esc(t.model)}${t.serial ? ' · S/N ' + esc(t.serial) : ''}</span></td>
+      <td>${esc(t.issue)}</td>
+      <td>${esc(t.tech || '')}</td>
+      <td><b>${cur(t.out.final)}</b></td>
+      <td>${esc(t.out.pay)}</td>
+      <td>${esc(t.out.picker)}</td>
+      <td class="mute">in: ${esc(t.inBy)}<br>out: ${esc(t.out.by)}</td>
+      <td>${esc(days(t.inAt, t.out.at))}</td>
+      <td><button class="small" data-det="${esc(t.id)}">Details</button></td>
+    </tr>`).join('') + `<tr><td colspan="5"><b>Total</b></td><td><b>${cur(total)}</b></td><td colspan="5"></td></tr>`
+    : '<tr><td colspan="11" class="mute">No collected repairs in this period.</td></tr>';
+  $('#tbOpen').innerHTML = open.length ? open.map(t => `
+    <tr>
+            <td>${esc(t.customer)}<br><span class="mute">${esc(t.phone)}</span></td>
+      <td>${esc(t.type)}<br><span class="mute">${esc(t.model)}</span></td>
+      <td>${statusBadge(t.status)}</td>
+      <td class="mute">${esc(fmt(t.inAt))}</td>
+      <td>${esc(days(t.inAt, new Date()))}</td>
+      <td>${deadlineBadge(t)}</td>
+      <td><button class="small" data-det="${esc(t.id)}">Details</button></td>
+    </tr>`).join('')
+    : '<tr><td colspan="7" class="mute">No open jobs.</td></tr>';
+}
+$('#mPeriod').onchange = $('#mFrom').onchange = $('#mTo').onchange = () => renderMoney();
+$('#mCur').onchange = () => {
+  if (!guard('finance')) return;
+  db.currency = $('#mCur').value.trim().slice(0, 4); log('currency changed', db.currency); save(); renderMoney();
+};
+$('#btnMoneyPrint').onclick = () => { const th = document.documentElement.dataset.theme; document.documentElement.dataset.theme = 'light'; document.body.classList.add('pm'); window.print(); document.body.classList.remove('pm'); document.documentElement.dataset.theme = th; };
+$('#btnMoneyCsv').onclick = () => {
+  if (!guard('finance')) return;
+  const {done} = moneyData();
+  const cell = v => { let x = String(v ?? ''); if (/^[=+\-@]/.test(x)) x = "'" + x; return '"' + x.replace(/"/g, '""') + '"'; };
+  const head = ['Collected','Customer','Phone','Email','Type','Model','Serial','Issue','Technician','Final cost','Payment','Picked up by','Checked in','Checked in by','Checked out by','Repair notes','Checkout notes'];
+  const lines = done.map(t => [t.out.at,t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.tech,t.out.final,t.out.pay,t.out.picker,t.inAt,t.inBy,t.out.by,t.notes,t.out.notes].map(cell).join(','));
+  const blob = new Blob(['\ufeff' + [head.map(cell).join(','), ...lines].join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'repair-money-report.csv'; a.click();
+  log('export money csv', done.length + ' rows');
+};
+
+/* ---- Full ticket details (admin) ---- */
+function showDetails(id){
+  const t = db.tickets.find(x => x.id === id); if (!t) return;
+  const row = (k, v, raw) => `<tr><th style="width:36%">${esc(k)}</th><td>${(v === '' || v == null) ? '<span class="mute">–</span>' : (raw ? v : esc(v))}</td></tr>`;
+  let r = row('Status', t.status) + row('Customer', t.customer) + row('Phone', t.phone) + row('Email', t.email) +
+    row('Device type', t.type) + row('Brand / model', t.model) + row('Serial number', t.serial) + row('Problem', t.issue) +
+    row('Accessories left', t.acc) + row('Technician', t.tech) + row('Repair notes', t.notes) +
+    row('Checked in', fmt(t.inAt) + ' by ' + t.inBy) +
+    row('Deadline (7 days)', t.status === 'Checked Out' ? dueOf(t).toLocaleDateString('en-PH') : deadlineBadge(t), t.status !== 'Checked Out');
+  if (t.out){
+    r += row('Collected', fmt(t.out.at) + ' by ' + t.out.by) + row('Final cost', cur(t.out.final), true) + row('Payment method', t.out.pay) +
+      row('Picked up by', t.out.picker) + row('Checkout notes', t.out.notes);
+  }
+  const hist = db.audit.filter(a => a.r === t.id || String(a.d).includes(t.id)).reverse();
+  $('#detailBody').innerHTML = `<h3 style="margin-top:0">${esc(t.customer)} · ${esc(t.model)}</h3><table>${r}</table>` +
+    `<h4 style="margin:16px 0 6px">History</h4>` +
+    (hist.length ? `<table>${hist.map(a => `<tr><td class="mute" style="white-space:nowrap">${esc(fmt(a.t))}</td><td>${esc(a.u)}</td><td>${esc(a.a)}</td><td>${esc(a.d)}</td></tr>`).join('')}</table>` : '<div class="mute">No history recorded.</div>');
+  $('#detailDlg').showModal();
+}
+$('#detailClose').onclick = () => $('#detailDlg').close();
+document.addEventListener('click', e => { const b = e.target.closest('[data-det]'); if (b && guard('finance')) showDetails(b.dataset.det); });
+
+/* ---- Audit ---- */
+function renderAudit(){
+  $('#tbAudit').innerHTML = db.audit.length ? db.audit.map(a =>
+    `<tr><td class="mute" style="white-space:nowrap">${esc(fmt(a.t))}</td><td>${esc(a.u)}</td><td>${esc(a.a)}</td><td>${esc(a.d)}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="mute">Nothing logged yet.</td></tr>';
+}
+
+/* ---- Other tabs/windows: re-check access immediately ---- */
+window.addEventListener('storage', e => {
+  if (SYNC.on || e.key !== DB_KEY || !e.newValue) return;
+  try{ db = JSON.parse(e.newValue); normalize(); }catch(_){ return; }
+  if (session){ if (!me()) logout('Your access was changed by an admin.'); else showApp(); }
+});
+
+/* ---- Dark mode ---- */
+const THEME_KEY = 'repairdesk.theme';
+function applyTheme(t){ document.documentElement.dataset.theme = t; document.querySelectorAll('.theme').forEach(b => b.textContent = t === 'dark' ? '☀ Light mode' : '🌙 Dark mode'); }
+let savedTheme = null; try{ savedTheme = localStorage.getItem(THEME_KEY); }catch(e){}
+applyTheme(savedTheme || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+document.querySelectorAll('.theme').forEach(b => b.onclick = () => {
+  const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; applyTheme(t);
+  try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
+});
+
+$('#dlg').addEventListener('close', refresh); $('#detailDlg').addEventListener('close', refresh);
+init().then(restoreSession);
+</script>
+</body>
+</html>
