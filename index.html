@@ -62,6 +62,20 @@ dialog::backdrop{background:#0006}
   #login,#customer{margin:4vh auto;padding:20px;width:calc(100% - 24px)}
 }
 @media print{body.pm *{visibility:hidden}body.pm #tab-money,body.pm #tab-money *{visibility:visible}body.pm #tab-money{position:absolute;left:0;top:0;width:100%}body.pm #tab-money .bar,body.pm #tab-money button{display:none}}
+#ticketPrint{display:none}
+.tk{max-width:700px;margin:0 auto;padding:14px 18px;border:2px solid #000;color:#000;background:#fff;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.tk h2{margin:0;font-size:20px}
+.tk .tkh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px}
+.tk .no{font-size:22px;font-weight:700;text-align:right}
+.tk table{font-size:13px}
+.tk th{width:32%;color:#333;text-transform:none;letter-spacing:0;font-size:13px;border-bottom:1px solid #bbb;padding:4px 8px}
+.tk td{color:#000;border-bottom:1px solid #bbb;padding:4px 8px}
+.tk .sig{display:flex;gap:30px;margin-top:28px}
+.tk .sig>div{flex:1}.tk .sig .nm{display:block;min-height:20px;text-align:center;font-weight:600}.tk .sig .ln{border-top:1px solid #000;padding-top:3px;font-size:12px}
+.tk .fine{font-size:11px;color:#333;margin-top:8px}
+.cut{border-top:2px dashed #666;margin:16px 0;text-align:center;font-size:11px;color:#666;line-height:0}
+.cut span{background:#fff;padding:0 8px}
+@media print{@page{margin:10mm}body.pt>*:not(#ticketPrint){display:none!important}body.pt #ticketPrint{display:block}body.pt{background:#fff}}
 html[data-theme=dark]{--bg:#0f1720;--card:#18222e;--ink:#e6ebf1;--mute:#9aa7b6;--line:#2a3745;--brand:#4c8dff;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;color-scheme:dark}
 html[data-theme=dark] button,html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea{background:#1f2c3a;color:var(--ink);border-color:#34465a}
 html[data-theme=dark] button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
@@ -170,7 +184,7 @@ html[data-theme=dark] dialog{background:var(--card);color:var(--ink)}
         <form id="formOut" class="grid">
           <div class="span"><label>Device ready for pickup *</label><select id="outTicket" name="ticket" required></select></div>
           <div class="span mute" id="outInfo"></div>
-          <div><label>Final cost *</label><input name="final" type="number" min="0" step="0.01" required></div>
+          <div><label>Final payment * (amount paid now)</label><input name="final" type="number" min="0" step="0.01" required></div>
           <div><label>Payment method *</label><select name="pay" required><option>Cash</option><option>GCash</option><option>Maya</option><option>Bank transfer</option><option>Credit / debit card</option><option>Warranty / no charge</option></select></div>
           <div><label>Picked up by (full name) *</label><input name="picker" required></div>
           <div class="span"><label>Notes</label><textarea name="notes"></textarea></div>
@@ -236,7 +250,7 @@ html[data-theme=dark] dialog{background:var(--card);color:var(--ink)}
     <div class="span"><label>Repair notes</label><textarea name="notes"></textarea></div>
     <div id="coWrap" class="span grid hidden" style="padding:0">
       <div class="span mute" id="dlgDown"></div>
-      <div><label>Final cost *</label><input name="final" type="number" min="0" step="0.01"></div>
+      <div><label>Final payment * (amount paid now)</label><input name="final" type="number" min="0" step="0.01"></div>
       <div><label>Payment method *</label><select name="pay"><option>Cash</option><option>GCash</option><option>Maya</option><option>Bank transfer</option><option>Credit / debit card</option><option>Warranty / no charge</option></select></div>
       <div><label>Picked up by (full name) *</label><input name="picker"></div>
           </div>
@@ -251,6 +265,12 @@ html[data-theme=dark] dialog{background:var(--card);color:var(--ink)}
   <div style="text-align:right;margin-top:14px"><button id="detailClose" type="button">Close</button></div>
 </dialog>
 
+<dialog id="ticketDlg" style="width:min(760px,96vw);max-height:92vh;overflow:auto">
+  <div id="ticketBody"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button id="ticketPrintBtn" type="button" class="primary">Print ticket</button><button id="ticketClose" type="button">Close</button></div>
+</dialog>
+<div id="ticketPrint"></div>
+
 <div id="toast"></div>
 
 <script>
@@ -261,7 +281,7 @@ const STATUSES = ['Checked In','Diagnosing','Waiting for Parts','In Repair','Rep
 const ROLES = {
   admin:      {label:'Admin',      perms:['view','checkout','edit','delete','users','audit','finance','deadline'], help:'Edit and check out repairs, users, money reports, the audit log and changing deadlines. Check-ins come from customers and the front desk.'},
   frontdesk:  {label:'Front desk', perms:['view','checkin','checkout'],                                 help:'Check devices in and out. Opens automatically without a password. Cannot edit repairs.'},
-  technician: {label:'Technician', perms:['view','edit','checkout'],                                               help:'Update status and notes, and check out finished jobs with the final price. Cannot check in or change the 7-day deadline. After check-out only an admin can edit the job.'},
+  technician: {label:'Technician', perms:['view','edit','checkout','print'],                                               help:'Update status and notes, and check out finished jobs with the final price. Must print the ticket before doing anything else on a job (only technicians can print tickets). Cannot check in or change the 7-day deadline. After check-out only an admin can edit the job.'},
   viewer:     {label:'Viewer',     perms:['view'],                                                      help:'Read-only.'}
 };
 const TABS = [
@@ -552,21 +572,23 @@ function renderTickets(){
       <td>${deadlineBadge(t)}</td>
       <td class="mute">${esc(fmt(t.inAt))}</td>
       <td style="white-space:nowrap">
-        ${can('edit') && NEXT[t.status] ? `<button class="small primary" data-next="${t.id}">→ ${NEXT[t.status]}</button>` : ''}
-        ${can('checkout') && !can('edit') && ['Repaired','Unrepairable'].includes(t.status) ? `<button class="small primary" data-co="${t.id}">Check out</button>` : ''}
-        ${can('edit') && (t.status!=='Checked Out' || me().role==='admin') ? `<button class="small primary" data-edit="${t.id}">${can('checkout') && ['Repaired','Unrepairable'].includes(t.status) ? 'Update / Check out' : 'Update'}</button>` : ''}
+        ${can('print') ? `<button class="small ${t.printed ? '' : 'primary'}" data-print="${esc(t.id)}">${t.printed ? 'Reprint ticket' : 'Print ticket first'}</button>` : ''}
+        ${can('edit') && !lockedT(t) && NEXT[t.status] ? `<button class="small primary" data-next="${t.id}">→ ${NEXT[t.status]}</button>` : ''}
+        ${can('checkout') && !can('edit') && !lockedT(t) && ['Repaired','Unrepairable'].includes(t.status) ? `<button class="small primary" data-co="${t.id}">Check out</button>` : ''}
+        ${can('edit') && !lockedT(t) && (t.status!=='Checked Out' || me().role==='admin') ? `<button class="small primary" data-edit="${t.id}">${can('checkout') && ['Repaired','Unrepairable'].includes(t.status) ? 'Update / Check out' : 'Update'}</button>` : ''}
         ${can('finance') ? `<button class="small" data-det="${t.id}">Details</button>` : ''}
         ${can('delete') ? `<button class="small danger" data-del="${t.id}">Delete</button>` : ''}
       </td>
     </tr>`).join('') : '<tr><td colspan="7" class="mute">No repairs yet.</td></tr>';
 }
 $('#tbTickets').addEventListener('click', e => {
-  const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]'), nx = e.target.closest('[data-next]'), co = e.target.closest('[data-co]');
+  const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]'), nx = e.target.closest('[data-next]'), co = e.target.closest('[data-co]'), pr = e.target.closest('[data-print]');
   if (nx && guard('edit')){
     const t = db.tickets.find(x => x.id === nx.dataset.next);
-    if (t && NEXT[t.status]){ const b = t.status; t.status = NEXT[b]; if (me().role === 'technician') t.tech = session; log('ticket updated', `${t.customer}: ${b} → ${t.status}`, t.id); save(); renderTickets(); toast(`${t.customer} → ${t.status}`); }
+    if (t && lockedT(t)) return toast('Print the ticket first'); if (t && NEXT[t.status]){ const b = t.status; t.status = NEXT[b]; if (me().role === 'technician') t.tech = session; log('ticket updated', `${t.customer}: ${b} → ${t.status}`, t.id); save(); renderTickets(); toast(`${t.customer} → ${t.status}`); }
   }
-  if (co && guard('checkout')){ tab = 'checkout'; showApp(); $('#outTicket').value = co.dataset.co; showOutInfo(); }
+  if (co && guard('checkout')){ if (lockedT(db.tickets.find(x => x.id === co.dataset.co))) return toast('Print the ticket first'); tab = 'checkout'; showApp(); $('#outTicket').value = co.dataset.co; showOutInfo(); }
+  if (pr){ const pt = db.tickets.find(x => x.id === pr.dataset.print); if (pt) showTicket(pt); }
   if (ed) openEdit(ed.dataset.edit);
   if (del && guard('delete')){
     const dt = db.tickets.find(x => x.id === del.dataset.del) || {customer:'this customer', model:''};
@@ -580,6 +602,7 @@ function openEdit(id){
   if (!guard('edit')) return;
   const t = db.tickets.find(x => x.id === id); if (!t) return;
   if (t.out && me().role !== 'admin') return toast('Access denied: already checked out');
+  if (lockedT(t)) return toast('Print the ticket first');
   editId = id;
   const f = $('#formEdit');
   $('#dlgTitle').textContent = `${t.customer} · ${t.model}`;
@@ -607,6 +630,7 @@ $('#formEdit').addEventListener('submit', e => {
   if (!guard('edit')) return;
   const t = db.tickets.find(x => x.id === editId); if (!t) return;
   if (t.out && me().role !== 'admin') return toast('Access denied: already checked out');
+  if (lockedT(t)) return toast('Print the ticket first');
   const before = t.status;
   Object.assign(t, {status:t.out ? t.status : f.status.value, tech: me().role === 'technician' ? session : t.tech, notes:f.notes.value.trim()});
   if (can('deadline') && f.due.value && f.due.value !== toInput(dueOf(t))){      // only admins can move the deadline
@@ -616,7 +640,7 @@ $('#formEdit').addEventListener('submit', e => {
   log('ticket updated', `${t.customer}: ${before} → ${t.status}`, t.id);
   if (coOn(t, f) && guard('checkout')){
     t.status = 'Checked Out';
-    t.out = {at:new Date().toISOString(), by:session, final:f.final.value, pay:f.pay.value, picker:f.picker.value.trim(), notes:''};
+    t.out = {at:new Date().toISOString(), by:session, final:f.final.value, pay:f.pay.value, picker:f.picker.value.trim(), notes:''}; stampOut(t);
     log('check out', `${t.customer} (${t.model}) to ${t.out.picker} · ${curSym()}${money(t.out.final)} ${t.out.pay}`, t.id); toast(t.customer + ' checked out');
   }
   save(); renderTickets();
@@ -629,6 +653,56 @@ $('#btnCsv').onclick = () => {
   const blob = new Blob(['\ufeff' + [head.map(cell).join(','), ...lines].join('\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'repair-tickets.csv'; a.click();
   log('export csv', db.tickets.length + ' tickets');
+};
+
+/* ---- Printable ticket ---- */
+const SHOP_NAME = 'D&M Computer';
+let lastCust = null;
+function settle(t, fin){
+  const total = Number(fin) || 0, down = t && t.down ? (Number(t.down.amount) || 0) : 0;
+  return {total, down, balance: Math.max(0, total - down)};
+}
+function stampOut(t){ const down = t.down ? (Number(t.down.amount) || 0) : 0, paid = Number(t.out.final) || 0; t.out.down = down; t.out.balance = paid; t.out.final = Math.round((down + paid) * 100) / 100; }   // the amount typed is the final payment; total = down payment + final payment
+const tkRow = (k, v) => `<tr><th>${esc(k)}</th><td>${(v === '' || v == null) ? '&ndash;' : v}</td></tr>`;   // v is already escaped
+function ticketCopy(t, label){
+  let rows = tkRow('Date in', esc(fmt(t.inAt))) + tkRow('Customer', esc(t.customer)) + tkRow('Phone', esc(t.phone)) + tkRow('Email', esc(t.email)) +
+    tkRow('Device', esc(t.type) + ' &middot; ' + esc(t.model)) + tkRow('Serial number', esc(t.serial)) +
+    tkRow('Problem', esc(t.issue)) + tkRow('Accessories left', esc(t.acc)) + tkRow('Status', esc(t.status)) +
+    tkRow('Target date', esc(dueOf(t).toLocaleDateString('en-PH'))) +
+    tkRow('Checked in by', esc(t.inBy === 'customer' ? 'Self-service drop-off' : t.inBy));
+  if (t.down) rows += tkRow('Down payment', cur(t.down.amount) + ' (' + esc(t.down.pay) + ')');
+  if (t.out){
+    const x = settle(t, t.out.final);
+    rows += tkRow('Final payment', cur(x.balance) + ' (' + esc(t.out.pay) + ')');
+    rows += tkRow('Total payment', '<b>' + cur(x.down + x.balance) + '</b>') + tkRow('Picked up', esc(fmt(t.out.at)) + ' by ' + esc(t.out.picker));
+  }
+  return `<div class="tk"><div class="tkh"><div><h2>${esc(SHOP_NAME)}</h2><div>Repair ticket &middot; ${esc(label)}</div></div><div class="no">${esc(t.id)}</div></div>
+    <table>${rows}</table>
+    <div class="fine">Please bring this ticket when you pick up your device. Data may be lost during repair; backups are the customer's responsibility.</div>
+    <div class="sig"><div><span class="nm"></span><div class="ln">Customer signature</div></div><div><span class="nm">${esc(t.out ? t.out.by : '')}</span><div class="ln">Staff signature</div></div></div></div>`;
+}
+const ticketHTML = t => ticketCopy(t, 'Customer copy') + '<div class="cut"><span>&#9986; cut here</span></div>' + ticketCopy(t, 'Shop copy');
+let tkShown = null;
+const lockedT = t => !!t && !!me() && me().role === 'technician' && !t.printed;   // technician must print the ticket first
+function showTicket(t){ if (!can('print')) return toast('Only the technician can print tickets'); tkShown = t; $('#ticketBody').innerHTML = ticketHTML(t); $('#ticketDlg').showModal(); }
+$('#ticketClose').onclick = () => $('#ticketDlg').close();
+$('#ticketPrintBtn').onclick = () => {
+  if (!can('print')) return toast('Only the technician can print tickets');
+  const t = (tkShown && db.tickets.find(x => x.id === tkShown.id)) || tkShown; if (!t) return;
+  const th = document.documentElement.dataset.theme;
+  $('#ticketPrint').innerHTML = ticketHTML(t);
+  document.documentElement.dataset.theme = 'light'; document.body.classList.add('pt');
+  const done = () => {
+    document.body.classList.remove('pt'); document.documentElement.dataset.theme = th; $('#ticketPrint').innerHTML = '';
+    setTimeout(() => {      // a browser cannot tell if paper really came out, so the technician must confirm it
+      if (!confirm('Did the ticket print?\n\nPress OK only if it printed. Press Cancel to try again.')) return toast('Not marked as printed. Press Print ticket again.');
+      const rt = db.tickets.find(x => x.id === t.id);
+      if (rt){ rt.printed = {at:new Date().toISOString(), by:session}; log('ticket printed', rt.customer + ' · ' + rt.model, rt.id); save(); toast('Ticket printed. You can now work on this job.'); }
+      $('#ticketDlg').close();
+    }, 300);
+  };
+  window.addEventListener('afterprint', done, {once:true});
+  window.print();
 };
 
 /* ---- Check in ---- */
@@ -663,9 +737,9 @@ function showOutInfo(){
 }
 function downLine(t, finalVal){
   if (!t || !t.down) return '';
-  const bal = finalVal === '' || finalVal == null ? null : Math.max(0, (Number(finalVal) || 0) - t.down.amount);
+  const bal = finalVal === '' || finalVal == null ? null : (Number(finalVal) || 0);
   return `<b>Down payment already paid: ${cur(t.down.amount)}</b> (${esc(t.down.pay)}, ${esc(fmt(t.down.at))})` +
-    (bal == null ? '<br>Enter the final cost to see the balance due.' : `<br><b>Balance to collect now: ${cur(bal)}</b>`);
+    (bal == null ? '<br>Enter the final payment to see the total payment.' : `<br>Down payment ${cur(t.down.amount)} + final payment ${cur(bal)} = <b>Total payment ${cur(t.down.amount + bal)}</b>`);
 }
 $('#formOut').final.addEventListener('input', showOutInfo);
 $('#outTicket').onchange = showOutInfo;
@@ -676,10 +750,11 @@ $('#formOut').addEventListener('submit', e => {
   const f = new FormData(e.target);
   const t = db.tickets.find(x => x.id === f.get('ticket'));
   if (!t || !['Repaired','Unrepairable'].includes(t.status)) return toast('Pick a device that is ready');
+  if (lockedT(t)) return toast('Print the ticket first');
   t.status = 'Checked Out';
-  t.out = {at:new Date().toISOString(), by:session, final:f.get('final'), pay:f.get('pay'), picker:f.get('picker').trim(), notes:f.get('notes').trim()};
+  t.out = {at:new Date().toISOString(), by:session, final:f.get('final'), pay:f.get('pay'), picker:f.get('picker').trim(), notes:f.get('notes').trim()}; stampOut(t);
   log('check out', `${t.customer} (${t.model}) to ${t.out.picker} · ${curSym()}${money(t.out.final)} ${t.out.pay}`, t.id); save();
-  e.target.reset(); tab = 'tickets'; showApp(); toast(t.customer + ' checked out');
+  e.target.reset(); tab = 'tickets'; showApp(); toast(t.customer + ' checked out' + (t.down ? ' · final payment ' + curSym() + money(t.out.balance) : ''));
 });
 
 /* ---- Customer self-service (no login needed) ---- */
@@ -876,7 +951,7 @@ function renderMoney(){
       <td>${esc(t.type)}<br><span class="mute">${esc(t.model)}${t.serial ? ' · S/N ' + esc(t.serial) : ''}</span></td>
       <td>${esc(t.issue)}</td>
       <td>${esc(t.tech || '')}</td>
-      <td><b>${cur(t.out.final)}</b></td>
+      <td><b>${cur(t.out.final)}</b>${t.down ? '<br><span class="mute">down ' + cur(t.down.amount) + ' + final payment ' + cur(settle(t, t.out.final).balance) + '</span>' : ''}</td>
       <td>${esc(t.out.pay)}</td>
       <td>${esc(t.out.picker)}</td>
       <td class="mute">in: ${esc(t.inBy)}<br>out: ${esc(t.out.by)}</td>
@@ -906,8 +981,8 @@ $('#btnMoneyCsv').onclick = () => {
   if (!guard('finance')) return;
   const {done} = moneyData();
   const cell = v => { let x = String(v ?? ''); if (/^[=+\-@]/.test(x)) x = "'" + x; return '"' + x.replace(/"/g, '""') + '"'; };
-  const head = ['Collected','Customer','Phone','Email','Type','Model','Serial','Issue','Technician','Down payment','Down payment method','Final cost','Payment','Picked up by','Checked in','Checked in by','Checked out by','Repair notes','Checkout notes'];
-  const lines = done.map(t => [t.out.at,t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.tech,t.down?.amount,t.down?.pay,t.out.final,t.out.pay,t.out.picker,t.inAt,t.inBy,t.out.by,t.notes,t.out.notes].map(cell).join(','));
+  const head = ['Collected','Customer','Phone','Email','Type','Model','Serial','Issue','Technician','Down payment','Down payment method','Total payment','Final payment','Payment','Picked up by','Checked in','Checked in by','Checked out by','Repair notes','Checkout notes'];
+  const lines = done.map(t => [t.out.at,t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.tech,t.down?.amount,t.down?.pay,t.out.final,settle(t,t.out.final).balance,t.out.pay,t.out.picker,t.inAt,t.inBy,t.out.by,t.notes,t.out.notes].map(cell).join(','));
   const blob = new Blob(['\ufeff' + [head.map(cell).join(','), ...lines].join('\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'repair-money-report.csv'; a.click();
   log('export money csv', done.length + ' rows');
@@ -924,7 +999,7 @@ function showDetails(id){
     row('Down payment', t.down ? cur(t.down.amount) + ' · ' + esc(t.down.pay) : '', true) +
     row('Deadline (7 days)', t.status === 'Checked Out' ? dueOf(t).toLocaleDateString('en-PH') : deadlineBadge(t), t.status !== 'Checked Out');
   if (t.out){
-    r += row('Collected', fmt(t.out.at) + ' by ' + t.out.by) + row('Final cost', cur(t.out.final), true) + (t.down ? row('Balance paid at pickup', cur(Math.max(0, (Number(t.out.final) || 0) - t.down.amount)), true) : '') + row('Payment method', t.out.pay) +
+    r += row('Collected', fmt(t.out.at) + ' by ' + t.out.by) + (t.down ? row('Final payment', cur(settle(t, t.out.final).balance), true) : '') + row('Total payment', cur(t.out.final), true) + row('Payment method', t.out.pay) +
       row('Picked up by', t.out.picker) + row('Checkout notes', t.out.notes);
   }
   const hist = db.audit.filter(a => a.r === t.id || String(a.d).includes(t.id)).reverse();
@@ -960,7 +1035,7 @@ document.querySelectorAll('.theme').forEach(b => b.onclick = () => {
   try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
 });
 
-$('#dlg').addEventListener('close', refresh); $('#detailDlg').addEventListener('close', refresh);
+$('#dlg').addEventListener('close', refresh); $('#detailDlg').addEventListener('close', refresh); $('#ticketDlg').addEventListener('close', refresh);
 init().then(restoreSession);
 </script>
 </body>
