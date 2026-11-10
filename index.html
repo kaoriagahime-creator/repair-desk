@@ -63,19 +63,19 @@ dialog::backdrop{background:#0006}
 }
 @media print{body.pm *{visibility:hidden}body.pm #tab-money,body.pm #tab-money *{visibility:visible}body.pm #tab-money{position:absolute;left:0;top:0;width:100%}body.pm #tab-money .bar,body.pm #tab-money button{display:none}}
 #ticketPrint{display:none}
-.tk{max-width:140mm;margin:0 auto;padding:6px 9px;border:2px solid #000;color:#000;background:#fff;font:700 13px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-.tk h2{margin:0;font-size:21px;font-weight:800}
+.tk{max-width:99mm;margin:0 auto;padding:4px 6px;border:2px solid #000;color:#000;background:#fff;font:800 13px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.tk h2{margin:0;font-size:20px;font-weight:800}.tk{break-inside:avoid;page-break-inside:avoid}
 .tk .tkh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:4px}
-.tk .no{font-size:20px;font-weight:700;text-align:right}
-.tk table{font-size:13px;font-weight:700}
-.tk th{width:34%;color:#000;text-transform:none;letter-spacing:0;font-size:13px;font-weight:700;border-bottom:1px solid #000;padding:3px 5px}
-.tk td{color:#000;font-weight:800;border-bottom:1px solid #000;padding:3px 5px}
-.tk .sig{display:flex;gap:16px;margin-top:20px}
-.tk .sig>div{flex:1}.tk .sig .nm{display:block;min-height:20px;text-align:center;font-weight:600}.tk .sig .ln{border-top:1px solid #000;padding-top:2px;font-size:12px;font-weight:700}
-.tk .fine{font-size:11px;font-weight:700;color:#000;margin-top:5px}
-.cut{border-top:2px dashed #000;margin:10px 0;text-align:center;font-size:12px;font-weight:700;color:#000;line-height:0}
+.tk .no{font-size:17px;font-weight:700;text-align:right}
+.tk table{font-size:13px;font-weight:800}
+.tk th{width:34%;color:#000;text-transform:none;letter-spacing:0;font-size:13px;font-weight:800;border-bottom:1px solid #000;padding:1px 4px}
+.tk td{color:#000;font-weight:900;border-bottom:1px solid #000;padding:1px 4px;overflow-wrap:anywhere}
+.tk .sig{display:flex;gap:12px;margin-top:6px}
+.tk .sig>div{flex:1}.tk .sig .nm{display:block;min-height:20px;text-align:center;font-weight:600}.tk .sig .ln{border-top:1px solid #000;padding-top:1px;font-size:10px;font-weight:800}
+.tk .fine{font-size:9.5px;font-weight:700;color:#000;margin-top:5px}
+.cut{border-top:2px dashed #000;margin:5px 0;text-align:center;font-size:14px;font-weight:700;color:#000;line-height:0}
 .cut span{background:#fff;padding:0 8px}
-@media print{@page{margin:5mm}body.pt>*:not(#ticketPrint){display:none!important}body.pt #ticketPrint{display:block;width:140mm;margin:0 auto}body.pt{background:#fff}}
+@media print{@page{size:105mm 148mm;margin:3mm}body.pt>*:not(#ticketPrint){display:none!important}body.pt #ticketPrint{display:block;width:99mm;margin:0 auto}html.pt-on,body.pt{height:auto}body.pt{background:#fff}}
 html[data-theme=dark]{--bg:#0f1720;--card:#18222e;--ink:#e6ebf1;--mute:#9aa7b6;--line:#2a3745;--brand:#4c8dff;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;color-scheme:dark}
 html[data-theme=dark] button,html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea{background:#1f2c3a;color:var(--ink);border-color:#34465a}
 html[data-theme=dark] button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
@@ -265,7 +265,7 @@ html[data-theme=dark] dialog{background:var(--card);color:var(--ink)}
   <div style="text-align:right;margin-top:14px"><button id="detailClose" type="button">Close</button></div>
 </dialog>
 
-<dialog id="ticketDlg" style="width:min(560px,96vw);max-height:92vh;overflow:auto">
+<dialog id="ticketDlg" style="width:min(420px,96vw);max-height:92vh;overflow:auto">
   <div id="ticketBody"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button id="ticketPrintBtn" type="button" class="primary">Print ticket</button><button id="ticketClose" type="button">Close</button></div>
 </dialog>
@@ -665,23 +665,20 @@ function settle(t, fin){
 function stampOut(t){ const down = t.down ? (Number(t.down.amount) || 0) : 0, paid = Number(t.out.final) || 0; t.out.down = down; t.out.balance = paid; t.out.final = Math.round((down + paid) * 100) / 100; }   // the amount typed is the final payment; total = down payment + final payment
 const tkRow = (k, v) => `<tr><th>${esc(k)}</th><td>${(v === '' || v == null) ? '&ndash;' : v}</td></tr>`;   // v is already escaped
 function ticketCopy(t, label){
-  let rows = tkRow('Date in', esc(fmt(t.inAt))) + tkRow('Customer', esc(t.customer)) + tkRow('Phone', esc(t.phone)) + tkRow('Email', esc(t.email)) +
-    tkRow('Device', esc(t.type) + ' &middot; ' + esc(t.model)) + tkRow('Serial number', esc(t.serial)) +
-    tkRow('Problem', esc(t.issue)) + tkRow('Accessories left', esc(t.acc)) + tkRow('Status', esc(t.status)) +
-    tkRow('Target date', esc(dueOf(t).toLocaleDateString('en-PH'))) +
-    tkRow('Checked in by', esc(t.inBy === 'customer' ? 'Self-service drop-off' : t.inBy));
+  let rows = tkRow('Date in', esc(fmt(t.inAt))) + tkRow('Customer', esc(t.customer) + ' &middot; ' + esc(t.phone)) +
+    tkRow('Device', esc(t.type) + ' &middot; ' + esc(t.model)) + tkRow('Serial no.', esc(t.serial)) +
+    tkRow('Problem', esc(t.issue)) + tkRow('Accessories', esc(t.acc)) + tkRow('Target date', esc(dueOf(t).toLocaleDateString('en-PH')));
   if (t.down) rows += tkRow('Down payment', cur(t.down.amount) + ' (' + esc(t.down.pay) + ')');
   if (t.out){
     const x = settle(t, t.out.final);
-    rows += tkRow('Final payment', cur(x.balance) + ' (' + esc(t.out.pay) + ')');
-    rows += tkRow('Total payment', '<b>' + cur(x.down + x.balance) + '</b>') + tkRow('Picked up', esc(fmt(t.out.at)) + ' by ' + esc(t.out.picker));
+    rows += tkRow('Final payment', cur(x.balance) + ' (' + esc(t.out.pay) + ')') + tkRow('Total payment', cur(x.down + x.balance)) + tkRow('Picked up', esc(fmt(t.out.at)) + ' by ' + esc(t.out.picker));
   }
   return `<div class="tk"><div class="tkh"><div><h2>${esc(SHOP_NAME)}</h2><div>Repair ticket &middot; ${esc(label)}</div></div><div class="no">${esc(t.id)}</div></div>
     <table>${rows}</table>
-    <div class="fine">Please bring this ticket when you pick up your device. Data may be lost during repair; backups are the customer's responsibility.</div>
+    ${label === 'Customer copy' ? '<div class="fine">Bring this ticket when you pick up your device. Backups are the customer\'s responsibility.</div>' : ''}
     <div class="sig"><div><span class="nm"></span><div class="ln">Customer signature</div></div><div><span class="nm">${esc(t.out ? t.out.by : '')}</span><div class="ln">Staff signature</div></div></div></div>`;
 }
-const ticketHTML = t => ticketCopy(t, 'Customer copy') + '<div class="cut"><span>&#9986; cut here</span></div>' + ticketCopy(t, 'Shop copy');
+const ticketHTML = t => ticketCopy(t, 'Customer copy') + '<div class="cut"><span>&#9986; cut here</span></div>' + ticketCopy(t, 'Shop copy');   // both copies on one A6 sticker
 let tkShown = null;
 const lockedT = t => !!t && !!me() && me().role === 'technician' && !t.printed;   // technician must print the ticket first
 function showTicket(t){ if (!can('print')) return toast('Only the technician can print tickets'); tkShown = t; $('#ticketBody').innerHTML = ticketHTML(t); $('#ticketDlg').showModal(); }
@@ -690,10 +687,12 @@ $('#ticketPrintBtn').onclick = () => {
   if (!can('print')) return toast('Only the technician can print tickets');
   const t = (tkShown && db.tickets.find(x => x.id === tkShown.id)) || tkShown; if (!t) return;
   const th = document.documentElement.dataset.theme;
-  $('#ticketPrint').innerHTML = ticketHTML(t);
+  const tp = $('#ticketPrint'); tp.innerHTML = ticketHTML(t);
+  tp.style.cssText = 'display:block;position:absolute;left:-9999px;top:0;width:99mm';      // measure, then shrink only if it would not fit 142mm
+  const maxH = 142 * 96 / 25.4, hNow = tp.scrollHeight; tp.style.cssText = hNow > maxH ? 'zoom:' + (maxH / hNow).toFixed(3) : '';
   document.documentElement.dataset.theme = 'light'; document.body.classList.add('pt');
   const done = () => {
-    document.body.classList.remove('pt'); document.documentElement.dataset.theme = th; $('#ticketPrint').innerHTML = '';
+    document.body.classList.remove('pt'); document.documentElement.dataset.theme = th; $('#ticketPrint').innerHTML = ''; $('#ticketPrint').style.cssText = '';
     setTimeout(() => {      // a browser cannot tell if paper really came out, so the technician must confirm it
       if (!confirm('Did the ticket print?\n\nPress OK only if it printed. Press Cancel to try again.')) return toast('Not marked as printed. Press Print ticket again.');
       const rt = db.tickets.find(x => x.id === t.id);
