@@ -159,7 +159,8 @@ html[data-theme=dark] dialog{background:var(--card);color:var(--ink)}
           <div><label>Serial number</label><input name="serial"></div>
           <div class="span"><label>Problem description *</label><textarea name="issue" required></textarea></div>
           <div><label>Accessories left (charger, bag...)</label><input name="acc"></div>
-          
+          <div><label>Down payment (optional)</label><input name="down" type="number" min="0" step="0.01" placeholder="0.00"></div>
+          <div><label>Down payment method</label><select name="downPay"><option>Cash</option><option>GCash</option><option>Maya</option><option>Bank transfer</option><option>Credit / debit card</option></select></div>
           <div class="span"><button class="primary">Check in device</button></div>
         </form>
       </section>
@@ -234,6 +235,7 @@ html[data-theme=dark] dialog{background:var(--card);color:var(--ink)}
     <div id="dueWrap" class="hidden"><label>Deadline (admin only)</label><input type="date" name="due"></div>
     <div class="span"><label>Repair notes</label><textarea name="notes"></textarea></div>
     <div id="coWrap" class="span grid hidden" style="padding:0">
+      <div class="span mute" id="dlgDown"></div>
       <div><label>Final cost *</label><input name="final" type="number" min="0" step="0.01"></div>
       <div><label>Payment method *</label><select name="pay"><option>Cash</option><option>GCash</option><option>Maya</option><option>Bank transfer</option><option>Credit / debit card</option><option>Warranty / no charge</option></select></div>
       <div><label>Picked up by (full name) *</label><input name="picker"></div>
@@ -585,7 +587,7 @@ function openEdit(id){
   $('#dlgCo').classList.toggle('hidden', !(can('checkout') && me().role !== 'technician' && ['Repaired','Unrepairable'].includes(t.status)));
   f.status.value = t.status; f.notes.value = t.notes || '';
   $('#dueWrap').classList.toggle('hidden', !can('deadline')); f.due.value = toInput(dueOf(t));
-  f.final.value = ''; f.pay.selectedIndex = 0; f.picker.value = ''; syncCo();
+  f.final.value = ''; f.pay.selectedIndex = 0; f.picker.value = ''; syncCo(); showDlgDown();
   $('#dlg').showModal();
 }
 const coOn = (t, f) => !!t && me().role === 'technician' && can('checkout') && !t.out && ['Repaired','Unrepairable'].includes(f.status.value);
@@ -595,6 +597,8 @@ function syncCo(){
   ['final','pay','picker'].forEach(n => f[n].required = on);
   $('#dlgSave').textContent = on ? 'Check out' : 'Save';
 }
+function showDlgDown(){ $('#dlgDown').innerHTML = downLine(db.tickets.find(x => x.id === editId), $('#formEdit').final.value); }
+$('#formEdit').final.addEventListener('input', showDlgDown);
 $('#dlgStatus').onchange = syncCo;
 $('#dlgCancel').onclick = () => $('#dlg').close();
 $('#dlgCo').onclick = () => { if (!guard('checkout')) return; $('#dlg').close(); tab = 'checkout'; showApp(); $('#outTicket').value = editId; showOutInfo(); };
@@ -620,8 +624,8 @@ $('#formEdit').addEventListener('submit', e => {
 $('#btnCsv').onclick = () => {
   if (!guard('view')) return;
   const cell = v => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g,'""') + '"'; };
-  const head = ['Customer','Phone','Email','Type','Model','Serial','Issue','Accessories','Status','Technician','Checked in','Deadline','Checked in by','Final cost','Payment','Picked up by','Checked out','Checked out by'];
-  const lines = db.tickets.map(t => [t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.acc,t.status,t.tech,t.inAt,toInput(dueOf(t)),t.inBy,t.out?.final,t.out?.pay,t.out?.picker,t.out?.at,t.out?.by].map(cell).join(','));
+  const head = ['Customer','Phone','Email','Type','Model','Serial','Issue','Accessories','Status','Technician','Checked in','Deadline','Checked in by','Down payment','Down payment method','Final cost','Payment','Picked up by','Checked out','Checked out by'];
+  const lines = db.tickets.map(t => [t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.acc,t.status,t.tech,t.inAt,toInput(dueOf(t)),t.inBy,t.down?.amount,t.down?.pay,t.out?.final,t.out?.pay,t.out?.picker,t.out?.at,t.out?.by].map(cell).join(','));
   const blob = new Blob(['\ufeff' + [head.map(cell).join(','), ...lines].join('\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'repair-tickets.csv'; a.click();
   log('export csv', db.tickets.length + ' tickets');
@@ -639,8 +643,10 @@ $('#formIn').addEventListener('submit', e => {
     issue: f.get('issue').trim(), acc: f.get('acc').trim(),
     status: 'Checked In', tech: '', notes: '', inAt: new Date().toISOString(), due: dueFromNow(), inBy: session, out: null
   };
-  db.tickets.unshift(t); log('check in', `${t.customer} · ${t.type} ${t.model}`, t.id); save();
-  e.target.reset(); toast('Checked in: ' + t.customer + ' · deadline ' + dueOf(t).toLocaleDateString('en-PH'));
+  const dp = Number(f.get('down'));
+  if (dp > 0) t.down = {amount: Math.round(dp * 100) / 100, pay: f.get('downPay'), at: t.inAt, by: session};
+  db.tickets.unshift(t); log('check in', `${t.customer} · ${t.type} ${t.model}` + (t.down ? ` · down payment ${curSym()}${money(t.down.amount)} ${t.down.pay}` : ''), t.id); save();
+  e.target.reset(); toast('Checked in: ' + t.customer + ' · deadline ' + dueOf(t).toLocaleDateString('en-PH') + (t.down ? ' · down payment ' + curSym() + money(t.down.amount) : ''));
 });
 
 /* ---- Check out ---- */
@@ -653,8 +659,15 @@ function renderCheckoutList(){
 }
 function showOutInfo(){
   const t = db.tickets.find(x => x.id === $('#outTicket').value);
-  $('#outInfo').innerHTML = t ? `Problem: ${esc(t.issue)}<br>${t.notes ? 'Repair notes: ' + esc(t.notes) + '<br>' : ''}` : '';
+  $('#outInfo').innerHTML = t ? `Problem: ${esc(t.issue)}<br>${t.notes ? 'Repair notes: ' + esc(t.notes) + '<br>' : ''}${downLine(t, $('#formOut').final.value)}` : '';
 }
+function downLine(t, finalVal){
+  if (!t || !t.down) return '';
+  const bal = finalVal === '' || finalVal == null ? null : Math.max(0, (Number(finalVal) || 0) - t.down.amount);
+  return `<b>Down payment already paid: ${cur(t.down.amount)}</b> (${esc(t.down.pay)}, ${esc(fmt(t.down.at))})` +
+    (bal == null ? '<br>Enter the final cost to see the balance due.' : `<br><b>Balance to collect now: ${cur(bal)}</b>`);
+}
+$('#formOut').final.addEventListener('input', showOutInfo);
 $('#outTicket').onchange = showOutInfo;
 $('#outBack').onclick = () => { tab = 'tickets'; showApp(); };
 $('#formOut').addEventListener('submit', e => {
@@ -893,8 +906,8 @@ $('#btnMoneyCsv').onclick = () => {
   if (!guard('finance')) return;
   const {done} = moneyData();
   const cell = v => { let x = String(v ?? ''); if (/^[=+\-@]/.test(x)) x = "'" + x; return '"' + x.replace(/"/g, '""') + '"'; };
-  const head = ['Collected','Customer','Phone','Email','Type','Model','Serial','Issue','Technician','Final cost','Payment','Picked up by','Checked in','Checked in by','Checked out by','Repair notes','Checkout notes'];
-  const lines = done.map(t => [t.out.at,t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.tech,t.out.final,t.out.pay,t.out.picker,t.inAt,t.inBy,t.out.by,t.notes,t.out.notes].map(cell).join(','));
+  const head = ['Collected','Customer','Phone','Email','Type','Model','Serial','Issue','Technician','Down payment','Down payment method','Final cost','Payment','Picked up by','Checked in','Checked in by','Checked out by','Repair notes','Checkout notes'];
+  const lines = done.map(t => [t.out.at,t.customer,t.phone,t.email,t.type,t.model,t.serial,t.issue,t.tech,t.down?.amount,t.down?.pay,t.out.final,t.out.pay,t.out.picker,t.inAt,t.inBy,t.out.by,t.notes,t.out.notes].map(cell).join(','));
   const blob = new Blob(['\ufeff' + [head.map(cell).join(','), ...lines].join('\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'repair-money-report.csv'; a.click();
   log('export money csv', done.length + ' rows');
@@ -908,9 +921,10 @@ function showDetails(id){
     row('Device type', t.type) + row('Brand / model', t.model) + row('Serial number', t.serial) + row('Problem', t.issue) +
     row('Accessories left', t.acc) + row('Technician', t.tech) + row('Repair notes', t.notes) +
     row('Checked in', fmt(t.inAt) + ' by ' + t.inBy) +
+    row('Down payment', t.down ? cur(t.down.amount) + ' · ' + esc(t.down.pay) : '', true) +
     row('Deadline (7 days)', t.status === 'Checked Out' ? dueOf(t).toLocaleDateString('en-PH') : deadlineBadge(t), t.status !== 'Checked Out');
   if (t.out){
-    r += row('Collected', fmt(t.out.at) + ' by ' + t.out.by) + row('Final cost', cur(t.out.final), true) + row('Payment method', t.out.pay) +
+    r += row('Collected', fmt(t.out.at) + ' by ' + t.out.by) + row('Final cost', cur(t.out.final), true) + (t.down ? row('Balance paid at pickup', cur(Math.max(0, (Number(t.out.final) || 0) - t.down.amount)), true) : '') + row('Payment method', t.out.pay) +
       row('Picked up by', t.out.picker) + row('Checkout notes', t.out.notes);
   }
   const hist = db.audit.filter(a => a.r === t.id || String(a.d).includes(t.id)).reverse();
